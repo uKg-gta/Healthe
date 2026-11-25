@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>GymLog — Personal Fitness &amp; Health Analytics</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="header-inner">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+          </span>
+          <div class="brand-text">
+            <span class="brand-name">GymLog</span>
+            <span class="brand-sub" id="header-greeting">Personal Health Record</span>
+          </div>
+        </div>
+
+        <nav class="desktop-nav" aria-label="Primary Navigation">
+          <button type="button" class="nav-btn active" data-section="home">Home</button>
+          <button type="button" class="nav-btn" data-section="workouts">Workouts</button>
+          <button type="button" class="nav-btn" data-section="nutrition">Nutrition</button>
+          <button type="button" class="nav-btn" data-section="progress">Progress</button>
+          <button type="button" class="nav-btn" data-section="profile">Profile</button>
+        </nav>
+
+        <div class="header-actions">
+          <button type="button" id="theme-toggle-btn" class="icon-btn" aria-label="Switch colour theme" title="Switch light/dark theme">
+            <svg id="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <svg id="theme-icon-sun" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content" id="main-content">
+      <!-- ==================== HOME SECTION ==================== -->
+      <section id="section-home" class="page-section active" aria-labelledby="home-heading">
+        <div class="section-header">
+          <div>
+            <h1 id="home-heading" class="page-title">Daily Overview</h1>
+            <p class="page-subtitle" id="home-date-label">Today</p>
+          </div>
+          <div class="date-stepper">
+            <button type="button" class="btn-icon-sm" id="home-prev-day" aria-label="Previous day">&lsaquo;</button>
+            <input type="date" id="home-date-picker" class="input-date-compact" aria-label="Select dashboard date">
+            <button type="button" class="btn-icon-sm" id="home-next-day" aria-label="Next day">&rsaquo;</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="home-today-btn">Today</button>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions-grid" aria-label="Quick log actions">
+          <button type="button" class="quick-action-btn" data-quick="workout">
+            <span class="qa-plus">+</span> Workout
+          </button>
+          <button type="button" class="quick-action-btn" data-quick="food">
+            <span class="qa-plus">+</span> Food
+          </button>
+          <button type="button" class="quick-action-btn" data-quick="water">
+            <span class="qa-plus">+</span> Water
+          </button>
+          <button type="button" class="quick-action-btn" data-quick="sleep">
+            <span class="qa-plus">+</span> Sleep
+          </button>
+          <button type="button" class="quick-action-btn" data-quick="steps">
+            <span class="qa-plus">+</span> Steps
+          </button>
+          <button type="button" class="quick-action-btn" data-quick="weight">
+            <span class="qa-plus">+</span> Weight
+          </button>
+        </div>
+
+        <!-- Top Summary Grid -->
+        <div class="dashboard-grid">
+          <!-- Workout Status Card -->
+          <article class="card">
+            <div class="card-header">
+              <h2 class="card-title">Workout Status</h2>
+              <button type="button" class="link-btn" data-goto="workouts">Open Workouts</button>
+            </div>
+            <div id="home-workout-status" class="card-body"></div>
+          </article>
+
+          <!-- Body Weight & BMI Card -->
+          <article class="card">
+            <div class="card-header">
+              <h2 class="card-title">Body Weight &amp; BMI</h2>
+              <button type="button" class="link-btn" data-quick="weight">Log Weight</button>
+            </div>
+            <div id="home-body-metrics" class="card-body"></div>
+          </article>
+        </div>
+
+        <!-- Daily Nutrition Summary Card -->
+        <article class="card">
+          <div class="card-header">
+            <h2 class="card-title">Nutrition Intake</h2>
+            <button type="button" class="link-btn" data-goto="nutrition">Open Nutrition</button>
+          </div>
+          <div id="home-nutrition-summary" class="card-body"></div>
+        </article>
+
+        <!-- Daily Health Metrics: Water, Sleep, Steps -->
+        <div class="metrics-three-grid">
+          <article class="card metric-card">
+            <div class="card-header">
+              <h2 class="card-title">Water</h2>
+              <button type="button" class="link-btn" data-quick="water">Edit</button>
+            </div>
+            <div id="home-water-card" class="card-body"></div>
+          </article>
+
+          <article class="card metric-card">
+            <div class="card-header">
+              <h2 class="card-title">Sleep</h2>
+              <button type="button" class="link-btn" data-quick="sleep">Log</button>
+            </div>
+            <div id="home-sleep-card" class="card-body"></div>
+          </article>
+
+          <article class="card metric-card">
+            <div class="card-header">
+              <h2 class="card-title">Steps</h2>
+              <button type="button" class="link-btn" data-quick="steps">Log</button>
+            </div>
+            <div id="home-steps-card" class="card-body"></div>
+          </article>
+        </div>
+
+        <!-- 7-Day Activity Overview Chart -->
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">7-Day Calorie &amp; Hydration Trend</h2>
+              <p class="card-note">Missing days are shown as gaps, never fabricated as zero.</p>
+            </div>
+            <select id="home-chart-metric" class="select-compact" aria-label="Select 7-day trend metric">
+              <option value="calories">Calories (kcal)</option>
+              <option value="water">Water (ml)</option>
+              <option value="steps">Steps</option>
+              <option value="sleep">Sleep (hrs)</option>
+            </select>
+          </div>
+          <div id="home-mini-chart" class="chart-container chart-sm"></div>
+        </article>
+      </section>
+
+      <!-- ==================== WORKOUTS SECTION ==================== -->
+      <section id="section-workouts" class="page-section" aria-labelledby="workouts-heading">
+        <div class="section-header">
+          <div>
+            <h1 id="workouts-heading" class="page-title">Workouts</h1>
+            <p class="page-subtitle">Schedule, log sessions, track personal records &amp; compare weekdays</p>
+          </div>
+          <button type="button" class="btn btn-primary" id="btn-new-workout-session">+ Log Session</button>
+        </div>
+
+        <div class="subtab-bar" role="tablist" aria-label="Workout sub-sections">
+          <button type="button" class="subtab-btn active" data-subtab="workouts-log" role="tab">Log</button>
+          <button type="button" class="subtab-btn" data-subtab="workouts-compare" role="tab">Weekday Compare</button>
+          <button type="button" class="subtab-btn" data-subtab="workouts-history" role="tab">History</button>
+          <button type="button" class="subtab-btn" data-subtab="workouts-schedule" role="tab">Schedule</button>
+          <button type="button" class="subtab-btn" data-subtab="workouts-library" role="tab">Exercises</button>
+        </div>
+
+        <!-- Subtab: Log Workout -->
+        <div id="subtab-workouts-log" class="subtab-panel active">
+          <article class="card">
+            <div class="card-header">
+              <h2 class="card-title" id="workout-form-title">Log Workout Session</h2>
+              <button type="button" class="btn btn-ghost btn-sm hidden" id="workout-cancel-edit">Cancel Edit</button>
+            </div>
+            <form id="workout-session-form" class="form-stack">
+              <input type="hidden" id="workout-edit-id" value="">
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label for="workout-date">Date</label>
+                  <input type="date" id="workout-date" required>
+                </div>
+                <div class="form-group">
+                  <label for="workout-title">Session Label (optional)</label>
+                  <input type="text" id="workout-title" placeholder="e.g. Upper Strength, Monday Session">
+                </div>
+                <div class="form-group">
+                  <label for="workout-load-schedule">Load from Schedule</label>
+                  <button type="button" class="btn btn-secondary btn-block" id="btn-load-weekday-schedule">Load Weekday Plan</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <div class="flex-between">
+                  <label>Exercises in Session</label>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-add-workout-exercise-row">+ Add Exercise</button>
+                </div>
+                <div id="workout-exercise-rows" class="exercise-rows-list"></div>
+              </div>
+
+              <div class="form-group">
+                <label for="workout-notes">Session Notes (optional)</label>
+                <textarea id="workout-notes" rows="2" placeholder="Optional observations..."></textarea>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="workout-submit-btn">Save Workout</button>
+              </div>
+            </form>
+          </article>
+
+          <!-- Personal Records Summary -->
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Personal Records</h2>
+                <p class="card-note">Heaviest weight, highest reps, and best recorded set per exercise</p>
+              </div>
+              <input type="search" id="pr-search-input" class="input-compact" placeholder="Filter exercise...">
+            </div>
+            <div id="workout-prs-container" class="card-body"></div>
+          </article>
+        </div>
+
+        <!-- Subtab: Same-Weekday Comparison -->
+        <div id="subtab-workouts-compare" class="subtab-panel">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Same-Weekday Performance Comparison</h2>
+                <p class="card-note">Compare a weekday session against previous sessions on the same weekday</p>
+              </div>
+            </div>
+            <div class="filter-bar">
+              <div class="form-group">
+                <label for="compare-weekday-select">Weekday</label>
+                <select id="compare-weekday-select">
+                  <option value="1">Monday</option>
+                  <option value="2">Tuesday</option>
+                  <option value="3">Wednesday</option>
+                  <option value="4">Thursday</option>
+                  <option value="5">Friday</option>
+                  <option value="6">Saturday</option>
+                  <option value="0">Sunday</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="compare-current-session">Current / Target Session</label>
+                <select id="compare-current-session"></select>
+              </div>
+              <div class="form-group">
+                <label for="compare-baseline-session">Compare Against</label>
+                <select id="compare-baseline-session"></select>
+              </div>
+            </div>
+            <div id="weekday-comparison-results" class="card-body"></div>
+          </article>
+        </div>
+
+        <!-- Subtab: History -->
+        <div id="subtab-workouts-history" class="subtab-panel">
+          <article class="card">
+            <div class="card-header">
+              <h2 class="card-title">Workout History</h2>
+              <button type="button" class="btn btn-ghost btn-sm" id="history-clear-filters">Clear Filters</button>
+            </div>
+            <div class="filter-bar">
+              <div class="form-group">
+                <label for="history-filter-date">Date</label>
+                <input type="date" id="history-filter-date">
+              </div>
+              <div class="form-group">
+                <label for="history-filter-weekday">Weekday</label>
+                <select id="history-filter-weekday">
+                  <option value="">All weekdays</option>
+                  <option value="1">Monday</option>
+                  <option value="2">Tuesday</option>
+                  <option value="3">Wednesday</option>
+                  <option value="4">Thursday</option>
+                  <option value="5">Friday</option>
+                  <option value="6">Saturday</option>
+                  <option value="0">Sunday</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="history-filter-exercise">Exercise</label>
+                <select id="history-filter-exercise">
+                  <option value="">All exercises</option>
+                </select>
+              </div>
+            </div>
+            <div id="workout-history-list" class="card-body"></div>
+          </article>
+        </div>
+
+        <!-- Subtab: Schedule -->
+        <div id="subtab-workouts-schedule" class="subtab-panel">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Weekly Workout Schedule</h2>
+                <p class="card-note">Configure any weekday freely. No predefined split is imposed.</p>
+              </div>
+            </div>
+            <div id="workout-schedule-grid" class="schedule-grid"></div>
+          </article>
+        </div>
+
+        <!-- Subtab: Exercise Library -->
+        <div id="subtab-workouts-library" class="subtab-panel">
+          <article class="card">
+            <div class="card-header">
+              <h2 class="card-title">Exercise Library</h2>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-custom-exercise">+ Custom Exercise</button>
+            </div>
+            <div class="filter-bar">
+              <div class="form-group">
+                <label for="library-search">Search</label>
+                <input type="search" id="library-search" placeholder="Search exercises...">
+              </div>
+              <div class="form-group">
+                <label for="library-filter-equipment">Equipment</label>
+                <select id="library-filter-equipment">
+                  <option value="">All equipment</option>
+                  <option value="Barbell">Barbell</option>
+                  <option value="Dumbbell">Dumbbell</option>
+                  <option value="Machine stack">Machine stack</option>
+                  <option value="Bodyweight">Bodyweight</option>
+                </select>
+              </div>
+            </div>
+            <div id="exercise-library-list" class="card-body"></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ==================== NUTRITION SECTION ==================== -->
+      <section id="section-nutrition" class="page-section" aria-labelledby="nutrition-heading">
+        <div class="section-header">
+          <div>
+            <h1 id="nutrition-heading" class="page-title">Nutrition</h1>
+            <p class="page-subtitle">Manual food log, reusable food profiles &amp; custom daily targets</p>
+          </div>
+          <div class="date-stepper">
+            <button type="button" class="btn-icon-sm" id="nutrition-prev-day" aria-label="Previous day">&lsaquo;</button>
+            <input type="date" id="nutrition-date-picker" class="input-date-compact" aria-label="Select nutrition date">
+            <button type="button" class="btn-icon-sm" id="nutrition-next-day" aria-label="Next day">&rsaquo;</button>
+          </div>
+        </div>
+
+        <div class="subtab-bar" role="tablist" aria-label="Nutrition sub-sections">
+          <button type="button" class="subtab-btn active" data-subtab="nutrition-daily" role="tab">Daily Log</button>
+          <button type="button" class="subtab-btn" data-subtab="nutrition-saved" role="tab">Saved Foods</button>
+        </div>
+
+        <!-- Subtab: Daily Log -->
+        <div id="subtab-nutrition-daily" class="subtab-panel active">
+          <!-- Targets Progress Card -->
+          <article class="card">
+            <div class="card-header">
+              <h2 class="card-title">Daily Targets Progress</h2>
+              <button type="button" class="link-btn" data-goto="profile">Edit Targets</button>
+            </div>
+            <div id="nutrition-targets-progress" class="card-body"></div>
+          </article>
+
+          <!-- Daily Food List Card -->
+          <article class="card">
+            <div class="card-header">
+              <h2 class="card-title">Food Entries</h2>
+              <div class="btn-group">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-add-from-saved">Add Saved Food</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-open-food-modal">+ Manual Entry</button>
+              </div>
+            </div>
+            <div id="nutrition-food-list" class="card-body"></div>
+          </article>
+        </div>
+
+        <!-- Subtab: Saved Food Profiles -->
+        <div id="subtab-nutrition-saved" class="subtab-panel">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Saved Food Profiles</h2>
+                <p class="card-note">Reusable foods automatically scale nutrition values when added to a day</p>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-create-saved-food">+ New Profile</button>
+            </div>
+            <div class="filter-bar">
+              <div class="form-group">
+                <input type="search" id="saved-food-search" placeholder="Search saved foods...">
+              </div>
+            </div>
+            <div id="saved-foods-list" class="card-body"></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ==================== PROGRESS SECTION ==================== -->
+      <section id="section-progress" class="page-section" aria-labelledby="progress-heading">
+        <div class="section-header">
+          <div>
+            <h1 id="progress-heading" class="page-title">Progress &amp; Analytics</h1>
+            <p class="page-subtitle">Long-term trends, body weight, BMI, daily health logs &amp; photo journal</p>
+          </div>
+        </div>
+
+        <div class="subtab-bar" role="tablist" aria-label="Progress sub-sections">
+          <button type="button" class="subtab-btn active" data-subtab="progress-charts" role="tab">Charts</button>
+          <button type="button" class="subtab-btn" data-subtab="progress-weight" role="tab">Weight &amp; BMI</button>
+          <button type="button" class="subtab-btn" data-subtab="progress-health" role="tab">Health Logs</button>
+          <button type="button" class="subtab-btn" data-subtab="progress-photos" role="tab">Photo Journal</button>
+        </div>
+
+        <!-- Subtab: Charts -->
+        <div id="subtab-progress-charts" class="subtab-panel active">
+          <article class="card">
+            <div class="filter-bar filter-bar-inline">
+              <div class="form-group">
+                <label for="progress-range">Date Range</label>
+                <select id="progress-range">
+                  <option value="7">Last 7 Days</option>
+                  <option value="30" selected>Last 30 Days</option>
+                  <option value="90">Last 90 Days</option>
+                  <option value="365">Last 1 Year</option>
+                  <option value="all">All Time</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="progress-granularity">View</label>
+                <select id="progress-granularity">
+                  <option value="daily" selected>Daily</option>
+                  <option value="weekly">Weekly Average</option>
+                  <option value="monthly">Monthly Average</option>
+                </select>
+              </div>
+            </div>
+            <p class="card-note">All charts distinguish missing entries (gaps) from logged zero values. Hover or tap points to inspect exact records.</p>
+          </article>
+
+          <div class="charts-grid">
+            <!-- 1. Body Weight -->
+            <article class="card chart-card">
+              <div class="card-header">
+                <h2 class="card-title">1. Body Weight Over Time</h2>
+                <span class="chart-stat" id="stat-weight"></span>
+              </div>
+              <div id="chart-weight" class="chart-container"></div>
+            </article>
+
+            <!-- 2. BMI -->
+            <article class="card chart-card">
+              <div class="card-header">
+                <h2 class="card-title">2. BMI Over Time</h2>
+                <span class="chart-stat" id="stat-bmi"></span>
+              </div>
+              <div id="chart-bmi" class="chart-container"></div>
+            </article>
+
+            <!-- 3. Calories -->
+            <article class="card chart-card">
+              <div class="card-header">
+                <h2 class="card-title">3. Calorie Intake Over Time</h2>
+                <span class="chart-stat" id="stat-calories"></span>
+              </div>
+              <div id="chart-calories" class="chart-container"></div>
+            </article>
+
+            <!-- 4. Protein -->
+            <article class="card chart-card">
+              <div class="card-header">
+                <h2 class="card-title">4. Protein Intake Over Time</h2>
+                <span class="chart-stat" id="stat-protein"></span>
+              </div>
+              <div id="chart-protein" class="chart-container"></div>
+            </article>
+
+            <!-- 5. Carbs & Fat -->
+            <article class="card chart-card">
+              <div class="card-header">
+                <h2 class="card-title">5. Carbohydrate &amp; Fat Intake</h2>
+                <span class="chart-stat" id="stat-carbs-fat"></span>
+              </div>
+              <div id="chart-carbs-fat" class="chart-container"></div>
+            </article>
+
+            <!-- 6. Workout Performance -->
+            <article class="card chart-card">
+              <div class="card-header">
+                <h2 class="card-title">6. Workout Performance Over Time</h2>
+                <span class="chart-stat" id="stat-workout-perf"></span>
+              </div>
+              <div id="chart-workout-perf" class="chart-container"></div>
+            </article>
+
+            <!-- 7. Exercise-Specific Strength Progression -->
+            <article class="card chart-card chart-card-wide">
+              <div class="card-header">
+                <h2 class="card-title">7. Exercise-Specific Strength Progression</h2>
+                <select id="chart-exercise-select" class="select-compact" aria-label="Select exercise for progression chart"></select>
+              </div>
+              <div id="chart-exercise-strength" class="chart-container"></div>
+            </article>
+
+            <!-- 8. Water -->
+            <article class="card chart-card">
+              <div class="card-header">
+                <h2 class="card-title">8. Water Consumption Over Time</h2>
+                <span class="chart-stat" id="stat-water"></span>
+              </div>
+              <div id="chart-water" class="chart-container"></div>
+            </article>
+
+            <!-- 9. Sleep -->
+            <article class="card chart-card">
+              <div class="card-header">
+                <h2 class="card-title">9. Sleep Duration Over Time</h2>
+                <span class="chart-stat" id="stat-sleep"></span>
+              </div>
+              <div id="chart-sleep" class="chart-container"></div>
+            </article>
+
+            <!-- 10. Steps -->
+            <article class="card chart-card">
+              <div class="card-header">
+                <h2 class="card-title">10. Daily Steps Over Time</h2>
+                <span class="chart-stat" id="stat-steps"></span>
+              </div>
+              <div id="chart-steps" class="chart-container"></div>
+            </article>
+          </div>
+        </div>
+
+        <!-- Subtab: Weight & BMI -->
+        <div id="subtab-progress-weight" class="subtab-panel">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Body Weight &amp; BMI Log</h2>
+                <p class="card-note">BMI = weight (kg) &divide; height (m)&sup2;. BMI is a basic tracking metric, not a complete measure of body composition.</p>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-weight-entry">+ Add Weight</button>
+            </div>
+            <div id="weight-history-summary" class="summary-strip"></div>
+            <div id="weight-history-table" class="card-body"></div>
+          </article>
+        </div>
+
+        <!-- Subtab: Daily Health Logs -->
+        <div id="subtab-progress-health" class="subtab-panel">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Daily Health Records</h2>
+                <p class="card-note">Historical water, sleep, and step entries</p>
+              </div>
+              <div class="btn-group">
+                <button type="button" class="btn btn-secondary btn-sm" data-quick="water">+ Water</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-quick="sleep">+ Sleep</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-quick="steps">+ Steps</button>
+              </div>
+            </div>
+            <div id="health-history-table" class="card-body"></div>
+          </article>
+        </div>
+
+        <!-- Subtab: Photo Journal -->
+        <div id="subtab-progress-photos" class="subtab-panel">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Private Progress Photo Journal</h2>
+                <p class="card-note">Stored strictly on your device. Never uploaded to any server.</p>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-photo">+ Add Photo</button>
+            </div>
+            <div id="photo-storage-banner" class="storage-banner"></div>
+          </article>
+
+          <!-- Side-by-side comparison -->
+          <article class="card">
+            <div class="card-header">
+              <h2 class="card-title">Side-by-Side Comparison</h2>
+            </div>
+            <div class="filter-bar">
+              <div class="form-group">
+                <label for="photo-compare-a">Photo A</label>
+                <select id="photo-compare-a"></select>
+              </div>
+              <div class="form-group">
+                <label for="photo-compare-b">Photo B</label>
+                <select id="photo-compare-b"></select>
+              </div>
+            </div>
+            <div id="photo-compare-view" class="photo-compare-grid"></div>
+          </article>
+
+          <!-- Chronological Gallery -->
+          <article class="card">
+            <div class="card-header">
+              <h2 class="card-title">Chronological Gallery</h2>
+            </div>
+            <div id="photo-gallery-grid" class="photo-gallery-grid"></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ==================== PROFILE SECTION ==================== -->
+      <section id="section-profile" class="page-section" aria-labelledby="profile-heading">
+        <div class="section-header">
+          <div>
+            <h1 id="profile-heading" class="page-title">Profile &amp; Settings</h1>
+            <p class="page-subtitle">Personal preferences, custom targets &amp; local data backup</p>
+          </div>
+        </div>
+
+        <div class="profile-grid">
+          <!-- Personal Info & Display Preferences -->
+          <article class="card">
+            <div class="card-header">
+              <h2 class="card-title">Personal Information &amp; Display</h2>
+            </div>
+            <form id="profile-info-form" class="form-stack">
+              <div class="form-group">
+                <label for="profile-name">Name (optional)</label>
+                <input type="text" id="profile-name" placeholder="Leave blank if preferred">
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="profile-height">Height (cm, optional — used for BMI)</label>
+                  <input type="number" id="profile-height" min="50" max="260" step="0.1" placeholder="e.g. 175">
+                </div>
+                <div class="form-group">
+                  <label for="profile-weight-unit">Preferred Weight Unit</label>
+                  <select id="profile-weight-unit">
+                    <option value="kg">Kilograms (kg)</option>
+                    <option value="lb">Pounds (lb)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="profile-theme">Theme</label>
+                  <select id="profile-theme">
+                    <option value="light">Light (Off-White &amp; Forest Green)</option>
+                    <option value="dark">Dark (Clinical Slate &amp; Sage)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="profile-water-unit">Water Display Unit</label>
+                  <select id="profile-water-unit">
+                    <option value="ml">Millilitres (ml)</option>
+                    <option value="L">Litres (L)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Profile</button>
+              </div>
+            </form>
+          </article>
+
+          <!-- Daily Targets -->
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Custom Daily Targets</h2>
+                <p class="card-note">Leave any target blank if you do not wish to track a target for it</p>
+              </div>
+            </div>
+            <form id="profile-targets-form" class="form-stack">
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="target-calories">Calories (kcal)</label>
+                  <input type="number" id="target-calories" min="0" step="1" placeholder="e.g. 2200">
+                </div>
+                <div class="form-group">
+                  <label for="target-protein">Protein (g)</label>
+                  <input type="number" id="target-protein" min="0" step="1" placeholder="e.g. 150">
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="target-carbs">Carbohydrates (g)</label>
+                  <input type="number" id="target-carbs" min="0" step="1" placeholder="e.g. 240">
+                </div>
+                <div class="form-group">
+                  <label for="target-fat">Fats (g)</label>
+                  <input type="number" id="target-fat" min="0" step="1" placeholder="e.g. 70">
+                </div>
+              </div>
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label for="target-fibre">Fibre (g)</label>
+                  <input type="number" id="target-fibre" min="0" step="0.5" placeholder="e.g. 30">
+                </div>
+                <div class="form-group">
+                  <label for="target-sugar">Sugar (g)</label>
+                  <input type="number" id="target-sugar" min="0" step="0.5" placeholder="e.g. 50">
+                </div>
+                <div class="form-group">
+                  <label for="target-sodium">Sodium (mg)</label>
+                  <input type="number" id="target-sodium" min="0" step="10" placeholder="e.g. 2300">
+                </div>
+              </div>
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label for="target-water">Water (ml)</label>
+                  <input type="number" id="target-water" min="0" step="50" placeholder="e.g. 3000">
+                </div>
+                <div class="form-group">
+                  <label for="target-sleep">Sleep (hours)</label>
+                  <input type="number" id="target-sleep" min="0" max="24" step="0.5" placeholder="e.g. 8">
+                </div>
+                <div class="form-group">
+                  <label for="target-steps">Daily Steps</label>
+                  <input type="number" id="target-steps" min="0" step="100" placeholder="e.g. 8000">
+                </div>
+              </div>
+
+              <!-- Custom Micronutrient Targets -->
+              <div class="form-group">
+                <div class="flex-between">
+                  <label>Micronutrient Targets (optional)</label>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-add-micro-target">+ Add Micronutrient</button>
+                </div>
+                <div id="micro-targets-rows" class="micro-rows-list"></div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Targets</button>
+              </div>
+            </form>
+          </article>
+        </div>
+
+        <!-- Data Ownership, Backup & Restore -->
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Data Ownership, Backup &amp; Storage</h2>
+              <p class="card-note">All data is stored locally in your browser. Export JSON backups regularly for long-term retention.</p>
+            </div>
+          </div>
+          <div id="profile-storage-summary" class="storage-banner"></div>
+          <div class="backup-actions-row">
+            <button type="button" class="btn btn-primary" id="btn-export-json">Export JSON Backup</button>
+            <label class="btn btn-secondary file-input-label" for="import-json-input">
+              Import JSON Backup
+              <input type="file" id="import-json-input" accept="application/json,.json" class="sr-only">
+            </label>
+            <button type="button" class="btn btn-danger-outline" id="btn-reset-data">Reset All Data</button>
+          </div>
+          <div id="backup-feedback" class="inline-feedback hidden" role="status" aria-live="polite"></div>
+        </article>
+      </section>
+    </main>
+
+    <!-- Bottom Mobile Navigation -->
+    <nav class="bottom-nav" aria-label="Mobile Navigation">
+      <button type="button" class="bottom-nav-btn active" data-section="home">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        <span>Home</span>
+      </button>
+      <button type="button" class="bottom-nav-btn" data-section="workouts">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11"></path><path d="M6.5 17.5h11"></path><path d="M3 10v4"></path><path d="M21 10v4"></path><path d="M6 7v10"></path><path d="M18 7v10"></path><line x1="6" y1="12" x2="18" y2="12"></line></svg>
+        <span>Workouts</span>
+      </button>
+      <button type="button" class="bottom-nav-btn" data-section="nutrition">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+        <span>Nutrition</span>
+      </button>
+      <button type="button" class="bottom-nav-btn" data-section="progress">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        <span>Progress</span>
+      </button>
+      <button type="button" class="bottom-nav-btn" data-section="profile">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span>Profile</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Reusable In-Page Modal -->
+  <div id="modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-title" class="modal-title">Dialog</h2>
+        <button type="button" class="btn-icon-sm" id="modal-close-btn" aria-label="Close dialog">&times;</button>
+      </div>
+      <div id="modal-body" class="modal-body"></div>
+      <div id="modal-footer" class="modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Chart Tooltip -->
+  <div id="chart-tooltip" class="chart-tooltip hidden" role="tooltip"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
