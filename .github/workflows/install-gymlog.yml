@@ -1,0 +1,32 @@
+name: Install GymLog source
+on:
+  push:
+    branches: [main]
+    paths:
+      - gymlog-source.zip.b64
+permissions:
+  contents: write
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Replace application files
+        run: |
+          base64 -d gymlog-source.zip.b64 > /tmp/gymlog-source.zip
+          mkdir -p /tmp/gymlog-source
+          unzip -o /tmp/gymlog-source.zip -d /tmp/gymlog-source
+          cp /tmp/gymlog-source/gymlog/index.html ./index.html
+          cp /tmp/gymlog-source/gymlog/styles.css ./styles.css
+          cp /tmp/gymlog-source/gymlog/app.js ./app.js
+          cp /tmp/gymlog-source/gymlog/README.md ./README.md
+          rm gymlog-source.zip.b64
+          rm .github/workflows/install-gymlog.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Replace GymLog prototype with g.file"
+          git push origin HEAD:main
