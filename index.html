@@ -32,6 +32,16 @@
         </nav>
 
         <div class="header-actions">
+          <div class="quick-menu-wrap">
+            <button type="button" id="quick-actions-toggle" class="icon-btn quick-actions-toggle" aria-label="Open quick actions" aria-expanded="false" title="Quick actions"><span aria-hidden="true">+</span></button>
+            <div id="quick-actions-menu" class="quick-actions-menu hidden" aria-label="Quick actions">
+              <button type="button" data-home-quick="water"><span>＋</span> Log water</button>
+              <button type="button" data-home-quick="sleep"><span>＋</span> Log sleep</button>
+              <button type="button" data-home-quick="steps"><span>＋</span> Log steps</button>
+              <button type="button" data-home-quick="weight"><span>＋</span> Log body weight</button>
+              <button type="button" id="quick-workout-action" data-home-quick="workout" class="hidden"><span>＋</span> Today's workout</button>
+            </div>
+          </div>
           <button type="button" id="theme-toggle-btn" class="icon-btn" aria-label="Switch colour theme" title="Switch light/dark theme">
             <svg id="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -56,11 +66,12 @@
     <main class="main-content" id="main-content">
       <!-- ==================== HOME SECTION ==================== -->
       <section id="section-home" class="page-section active" aria-labelledby="home-heading">
-        <div class="section-header">
-          <div>
-            <h1 id="home-heading" class="page-title">Daily Overview</h1>
-            <p class="page-subtitle" id="home-date-label">Today</p>
-          </div>
+        <div class="home-clock-strip" aria-live="off">
+          <div class="home-clock-time"><span class="home-clock-label">CURRENT TIME</span><strong id="home-current-time">--:--</strong></div>
+          <div class="home-clock-date"><span class="home-clock-label">TODAY</span><strong id="home-current-date">—</strong></div>
+        </div>
+        <div class="section-header home-section-header">
+          <div><h1 id="home-heading" class="page-title">Daily Overview</h1><p class="page-subtitle" id="home-date-label">Today</p></div>
           <div class="date-stepper">
             <button type="button" class="btn-icon-sm" id="home-prev-day" aria-label="Previous day">&lsaquo;</button>
             <input type="date" id="home-date-picker" class="input-date-compact" aria-label="Select dashboard date">
@@ -68,102 +79,37 @@
             <button type="button" class="btn btn-ghost btn-sm" id="home-today-btn">Today</button>
           </div>
         </div>
-
-        <!-- Quick Actions -->
-        <div class="quick-actions-grid" aria-label="Quick log actions">
-          <button type="button" class="quick-action-btn" data-quick="workout">
-            <span class="qa-plus">+</span> Workout
-          </button>
-          <button type="button" class="quick-action-btn" data-quick="food">
-            <span class="qa-plus">+</span> Food
-          </button>
-          <button type="button" class="quick-action-btn" data-quick="water">
-            <span class="qa-plus">+</span> Water
-          </button>
-          <button type="button" class="quick-action-btn" data-quick="sleep">
-            <span class="qa-plus">+</span> Sleep
-          </button>
-          <button type="button" class="quick-action-btn" data-quick="steps">
-            <span class="qa-plus">+</span> Steps
-          </button>
-          <button type="button" class="quick-action-btn" data-quick="weight">
-            <span class="qa-plus">+</span> Weight
-          </button>
+        <div id="home-dashboard-view">
+          <section id="home-gym-mode" class="home-mode-panel hidden" aria-labelledby="home-gym-heading">
+            <article class="card home-gym-card">
+              <div class="card-header"><div><h2 class="card-title" id="home-gym-heading">Today's Workout</h2><p class="card-note" id="home-gym-date-note">Your scheduled exercises</p></div><span class="badge badge-accent">Gym Mode</span></div>
+              <div id="home-gym-workout" class="card-body"></div>
+            </article>
+          </section>
+          <section id="home-normal-mode" class="home-mode-panel hidden" aria-label="Daily health trends">
+            <article class="card home-trends-card">
+              <div class="card-header"><div><h2 class="card-title">Your Trends</h2><p class="card-note">Seven-day view · progress shown against each metric's target</p></div><button type="button" class="link-btn" id="home-expand-trends">Expand</button></div>
+              <div class="home-chart-legend" aria-label="Chart legend">
+                <span><i class="legend-dot" style="background:var(--accent)"></i>Workout completion</span>
+                <span><i class="legend-dot" style="background:var(--series-2)"></i>Water</span>
+                <span><i class="legend-dot" style="background:var(--series-4)"></i>Sleep</span>
+              </div>
+              <div id="home-combined-chart" class="chart-container home-combined-chart"></div>
+            </article>
+            <div class="home-metrics-grid">
+              <article class="card home-metric-card" data-home-goto="progress" role="button" tabindex="0" aria-label="Open water details"><div class="card-header"><h2 class="card-title">Water</h2><span class="home-card-arrow">↗</span></div><div id="home-water-card" class="card-body"></div></article>
+              <article class="card home-metric-card" data-home-goto="progress" role="button" tabindex="0" aria-label="Open sleep details"><div class="card-header"><h2 class="card-title">Sleep</h2><span class="home-card-arrow">↗</span></div><div id="home-sleep-card" class="card-body"></div></article>
+              <article class="card home-metric-card" data-home-goto="progress" role="button" tabindex="0" aria-label="Open steps details"><div class="card-header"><h2 class="card-title">Steps</h2><span class="home-card-arrow">↗</span></div><div id="home-steps-card" class="card-body"></div></article>
+              <article class="card home-metric-card" data-home-goto="progress" role="button" tabindex="0" aria-label="Open body weight details"><div class="card-header"><h2 class="card-title">Body Weight</h2><span class="home-card-arrow">↗</span></div><div id="home-body-weight-card" class="card-body"></div></article>
+            </div>
+          </section>
         </div>
-
-        <!-- Top Summary Grid -->
-        <div class="dashboard-grid">
-          <!-- Workout Status Card -->
-          <article class="card">
-            <div class="card-header">
-              <h2 class="card-title">Workout Status</h2>
-              <button type="button" class="link-btn" data-goto="workouts">Open Workouts</button>
-            </div>
-            <div id="home-workout-status" class="card-body"></div>
-          </article>
-
-          <!-- Body Weight & BMI Card -->
-          <article class="card">
-            <div class="card-header">
-              <h2 class="card-title">Body Weight &amp; BMI</h2>
-              <button type="button" class="link-btn" data-quick="weight">Log Weight</button>
-            </div>
-            <div id="home-body-metrics" class="card-body"></div>
-          </article>
-        </div>
-
-        <!-- Daily Nutrition Summary Card -->
-        <article class="card">
-          <div class="card-header">
-            <h2 class="card-title">Nutrition Intake</h2>
-            <button type="button" class="link-btn" data-goto="nutrition">Open Nutrition</button>
-          </div>
-          <div id="home-nutrition-summary" class="card-body"></div>
-        </article>
-
-        <!-- Daily Health Metrics: Water, Sleep, Steps -->
-        <div class="metrics-three-grid">
-          <article class="card metric-card">
-            <div class="card-header">
-              <h2 class="card-title">Water</h2>
-              <button type="button" class="link-btn" data-quick="water">Edit</button>
-            </div>
-            <div id="home-water-card" class="card-body"></div>
-          </article>
-
-          <article class="card metric-card">
-            <div class="card-header">
-              <h2 class="card-title">Sleep</h2>
-              <button type="button" class="link-btn" data-quick="sleep">Log</button>
-            </div>
-            <div id="home-sleep-card" class="card-body"></div>
-          </article>
-
-          <article class="card metric-card">
-            <div class="card-header">
-              <h2 class="card-title">Steps</h2>
-              <button type="button" class="link-btn" data-quick="steps">Log</button>
-            </div>
-            <div id="home-steps-card" class="card-body"></div>
-          </article>
-        </div>
-
-        <!-- 7-Day Activity Overview Chart -->
-        <article class="card">
-          <div class="card-header">
-            <div>
-              <h2 class="card-title">7-Day Calorie &amp; Hydration Trend</h2>
-              <p class="card-note">Missing days are shown as gaps, never fabricated as zero.</p>
-            </div>
-            <select id="home-chart-metric" class="select-compact" aria-label="Select 7-day trend metric">
-              <option value="calories">Calories (kcal)</option>
-              <option value="water">Water (ml)</option>
-              <option value="steps">Steps</option>
-              <option value="sleep">Sleep (hrs)</option>
-            </select>
-          </div>
-          <div id="home-mini-chart" class="chart-container chart-sm"></div>
-        </article>
+        <section id="home-trends-detail" class="home-trends-detail hidden" aria-labelledby="home-trends-detail-heading">
+          <div class="section-header"><div><h2 class="page-title" id="home-trends-detail-heading">Detailed Trends</h2><p class="page-subtitle">Workout completion, water and sleep · last 30 days</p></div><button type="button" class="btn btn-secondary btn-sm" id="home-trends-back">Back</button></div>
+          <article class="card"><div class="card-header"><h3 class="card-title">Workout Completion</h3></div><div id="home-detail-workout-chart" class="chart-container"></div></article>
+          <article class="card"><div class="card-header"><h3 class="card-title">Water Intake</h3></div><div id="home-detail-water-chart" class="chart-container"></div></article>
+          <article class="card"><div class="card-header"><h3 class="card-title">Sleep</h3></div><div id="home-detail-sleep-chart" class="chart-container"></div></article>
+        </section>
       </section>
 
       <!-- ==================== WORKOUTS SECTION ==================== -->
