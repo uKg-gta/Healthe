@@ -117,181 +117,53 @@
         <div class="section-header">
           <div>
             <h1 id="workouts-heading" class="page-title">Workouts</h1>
-            <p class="page-subtitle">Schedule, log sessions, track personal records &amp; compare weekdays</p>
+            <p class="page-subtitle">Plan your week, follow your daily checklist and review consistency</p>
           </div>
-          <button type="button" class="btn btn-primary" id="btn-new-workout-session">+ Log Session</button>
         </div>
-
-        <div class="subtab-bar" role="tablist" aria-label="Workout sub-sections">
-          <button type="button" class="subtab-btn active" data-subtab="workouts-log" role="tab">Log</button>
-          <button type="button" class="subtab-btn" data-subtab="workouts-compare" role="tab">Weekday Compare</button>
-          <button type="button" class="subtab-btn" data-subtab="workouts-history" role="tab">History</button>
+        <div class="subtab-bar" role="tablist" aria-label="Workout sections">
+          <button type="button" class="subtab-btn active" data-subtab="workouts-today" role="tab">Today</button>
           <button type="button" class="subtab-btn" data-subtab="workouts-schedule" role="tab">Schedule</button>
+          <button type="button" class="subtab-btn" data-subtab="workouts-compare" role="tab">Consistency</button>
           <button type="button" class="subtab-btn" data-subtab="workouts-library" role="tab">Exercises</button>
         </div>
-
-        <!-- Subtab: Log Workout -->
-        <div id="subtab-workouts-log" class="subtab-panel active">
+        <div id="subtab-workouts-today" class="subtab-panel active">
           <article class="card">
             <div class="card-header">
-              <h2 class="card-title" id="workout-form-title">Log Workout Session</h2>
-              <button type="button" class="btn btn-ghost btn-sm hidden" id="workout-cancel-edit">Cancel Edit</button>
+              <div><h2 class="card-title">Daily Workout</h2><p class="card-note">Your repeating plan, with any date-specific changes</p></div>
+              <div class="date-stepper">
+                <button type="button" class="btn-icon-sm" id="workout-date-prev" aria-label="Previous day">&lsaquo;</button>
+                <input type="date" id="workout-selected-date" class="input-date-compact" aria-label="Workout date">
+                <button type="button" class="btn-icon-sm" id="workout-date-next" aria-label="Next day">&rsaquo;</button>
+              </div>
             </div>
-            <form id="workout-session-form" class="form-stack">
-              <input type="hidden" id="workout-edit-id" value="">
-              <div class="form-row-3">
-                <div class="form-group">
-                  <label for="workout-date">Date</label>
-                  <input type="date" id="workout-date" required>
-                </div>
-                <div class="form-group">
-                  <label for="workout-title">Session Label (optional)</label>
-                  <input type="text" id="workout-title" placeholder="e.g. Upper Strength, Monday Session">
-                </div>
-                <div class="form-group">
-                  <label for="workout-load-schedule">Load from Schedule</label>
-                  <button type="button" class="btn btn-secondary btn-block" id="btn-load-weekday-schedule">Load Weekday Plan</button>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <div class="flex-between">
-                  <label>Exercises in Session</label>
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-add-workout-exercise-row">+ Add Exercise</button>
-                </div>
-                <div id="workout-exercise-rows" class="exercise-rows-list"></div>
-              </div>
-
-              <div class="form-group">
-                <label for="workout-notes">Session Notes (optional)</label>
-                <textarea id="workout-notes" rows="2" placeholder="Optional observations..."></textarea>
-              </div>
-
-              <div class="form-actions">
-                <button type="submit" class="btn btn-primary" id="workout-submit-btn">Save Workout</button>
-              </div>
-            </form>
-          </article>
-
-          <!-- Personal Records Summary -->
-          <article class="card">
-            <div class="card-header">
-              <div>
-                <h2 class="card-title">Personal Records</h2>
-                <p class="card-note">Heaviest weight, highest reps, and best recorded set per exercise</p>
-              </div>
-              <input type="search" id="pr-search-input" class="input-compact" placeholder="Filter exercise...">
-            </div>
-            <div id="workout-prs-container" class="card-body"></div>
+            <div class="card-body" id="workout-daily-content"></div>
           </article>
         </div>
-
-        <!-- Subtab: Same-Weekday Comparison -->
+        <div id="subtab-workouts-schedule" class="subtab-panel">
+          <article class="card">
+            <div class="card-header"><div><h2 class="card-title">Weekly Schedule</h2><p class="card-note">This plan repeats every week until you change it</p></div></div>
+            <div id="workout-schedule-grid" class="schedule-grid"></div>
+          </article>
+        </div>
         <div id="subtab-workouts-compare" class="subtab-panel">
           <article class="card">
-            <div class="card-header">
-              <div>
-                <h2 class="card-title">Same-Weekday Performance Comparison</h2>
-                <p class="card-note">Compare a weekday session against previous sessions on the same weekday</p>
-              </div>
-            </div>
-            <div class="filter-bar">
-              <div class="form-group">
-                <label for="compare-weekday-select">Weekday</label>
-                <select id="compare-weekday-select">
-                  <option value="1">Monday</option>
-                  <option value="2">Tuesday</option>
-                  <option value="3">Wednesday</option>
-                  <option value="4">Thursday</option>
-                  <option value="5">Friday</option>
-                  <option value="6">Saturday</option>
-                  <option value="0">Sunday</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="compare-current-session">Current / Target Session</label>
-                <select id="compare-current-session"></select>
-              </div>
-              <div class="form-group">
-                <label for="compare-baseline-session">Compare Against</label>
-                <select id="compare-baseline-session"></select>
-              </div>
+            <div class="card-header"><div><h2 class="card-title">Weekday Consistency</h2><p class="card-note">Compare the same weekday across different weeks using completed and missed exercises</p></div></div>
+            <div class="form-group workout-compare-filter">
+              <label for="compare-weekday-select">Choose weekday</label>
+              <select id="compare-weekday-select">
+                <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
+                <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option>
+              </select>
             </div>
             <div id="weekday-comparison-results" class="card-body"></div>
           </article>
         </div>
-
-        <!-- Subtab: History -->
-        <div id="subtab-workouts-history" class="subtab-panel">
-          <article class="card">
-            <div class="card-header">
-              <h2 class="card-title">Workout History</h2>
-              <button type="button" class="btn btn-ghost btn-sm" id="history-clear-filters">Clear Filters</button>
-            </div>
-            <div class="filter-bar">
-              <div class="form-group">
-                <label for="history-filter-date">Date</label>
-                <input type="date" id="history-filter-date">
-              </div>
-              <div class="form-group">
-                <label for="history-filter-weekday">Weekday</label>
-                <select id="history-filter-weekday">
-                  <option value="">All weekdays</option>
-                  <option value="1">Monday</option>
-                  <option value="2">Tuesday</option>
-                  <option value="3">Wednesday</option>
-                  <option value="4">Thursday</option>
-                  <option value="5">Friday</option>
-                  <option value="6">Saturday</option>
-                  <option value="0">Sunday</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="history-filter-exercise">Exercise</label>
-                <select id="history-filter-exercise">
-                  <option value="">All exercises</option>
-                </select>
-              </div>
-            </div>
-            <div id="workout-history-list" class="card-body"></div>
-          </article>
-        </div>
-
-        <!-- Subtab: Schedule -->
-        <div id="subtab-workouts-schedule" class="subtab-panel">
-          <article class="card">
-            <div class="card-header">
-              <div>
-                <h2 class="card-title">Weekly Workout Schedule</h2>
-                <p class="card-note">Configure any weekday freely. No predefined split is imposed.</p>
-              </div>
-            </div>
-            <div id="workout-schedule-grid" class="schedule-grid"></div>
-          </article>
-        </div>
-
-        <!-- Subtab: Exercise Library -->
         <div id="subtab-workouts-library" class="subtab-panel">
           <article class="card">
-            <div class="card-header">
-              <h2 class="card-title">Exercise Library</h2>
-              <button type="button" class="btn btn-primary btn-sm" id="btn-add-custom-exercise">+ Custom Exercise</button>
-            </div>
+            <div class="card-header"><h2 class="card-title">Exercise Library</h2><button type="button" class="btn btn-primary btn-sm" id="btn-add-custom-exercise">+ Custom Exercise</button></div>
             <div class="filter-bar">
-              <div class="form-group">
-                <label for="library-search">Search</label>
-                <input type="search" id="library-search" placeholder="Search exercises...">
-              </div>
-              <div class="form-group">
-                <label for="library-filter-equipment">Equipment</label>
-                <select id="library-filter-equipment">
-                  <option value="">All equipment</option>
-                  <option value="Barbell">Barbell</option>
-                  <option value="Dumbbell">Dumbbell</option>
-                  <option value="Machine stack">Machine stack</option>
-                  <option value="Bodyweight">Bodyweight</option>
-                </select>
-              </div>
+              <div class="form-group"><label for="library-search">Search</label><input type="search" id="library-search" placeholder="Search exercises..."></div>
+              <div class="form-group"><label for="library-filter-equipment">Equipment</label><select id="library-filter-equipment"><option value="">All equipment</option><option value="Barbell">Barbell</option><option value="Dumbbell">Dumbbell</option><option value="Machine stack">Machine stack</option><option value="Bodyweight">Bodyweight</option></select></div>
             </div>
             <div id="exercise-library-list" class="card-body"></div>
           </article>
