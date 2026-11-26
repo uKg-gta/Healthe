@@ -1044,66 +1044,6 @@
     `;
   }
 
-  function renderHomeMiniChart() {
-    const metric = uiState.homeChartMetric;
-    const endISO = uiState.homeDate;
-    const dates = [];
-    for (let i = 6; i >= 0; i--) {
-      dates.push(shiftISODate(endISO, -i));
-    }
-    const labels = dates.map((d) => formatShortDate(d));
-    let values = [];
-    let unit = '';
-    let color = 'var(--accent)';
-    let targetValue = null;
-    let name = '';
-
-    if (metric === 'calories') {
-      name = 'Calories';
-      unit = 'kcal';
-      targetValue = state.targets.calories;
-      values = dates.map((d) => {
-        const tot = getNutritionTotalsForDate(d);
-        return tot.hasEntries ? tot.calories : null;
-      });
-    } else if (metric === 'water') {
-      name = 'Water';
-      unit = 'ml';
-      color = 'var(--series-2)';
-      targetValue = state.targets.water;
-      values = dates.map((d) => {
-        const l = state.healthLogs[d];
-        return l && l.water !== null && l.water !== undefined ? l.water : null;
-      });
-    } else if (metric === 'steps') {
-      name = 'Steps';
-      unit = 'steps';
-      color = 'var(--accent)';
-      targetValue = state.targets.steps;
-      values = dates.map((d) => {
-        const l = state.healthLogs[d];
-        return l && l.steps !== null && l.steps !== undefined ? l.steps : null;
-      });
-    } else {
-      name = 'Sleep';
-      unit = 'hrs';
-      color = 'var(--series-4)';
-      targetValue = state.targets.sleep;
-      values = dates.map((d) => {
-        const l = state.healthLogs[d];
-        return l && l.sleep !== null && l.sleep !== undefined ? l.sleep : null;
-      });
-    }
-
-    renderSVGChart(document.getElementById('home-mini-chart'), {
-      labels,
-      series: [{ name, color, values, unit }],      type: metric === 'sleep' ? 'line' : 'bar',
-      targetValue,
-      yMinZero: true,
-      emptyMessage: `No ${name.toLowerCase()} records in the last 7 days.`
-    });
-  }
-
   // -------------------- Quick Log Modals --------------------
 
   function openQuickWeightModal(existingEntry = null) {
