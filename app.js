@@ -1401,6 +1401,7 @@
     const done = total ? plan.exercises.filter((ex) => completed.has(ex.scheduleId)).length : 0;
     const percent = total ? Math.round(done / total * 100) : 0;
     const status = daily.status || (total && done === total ? 'completed' : daily.touched ? 'in_progress' : '');
+    const canMarkMissed = dateISO <= getTodayISO();
     const overrideLabel = plan.isOverride ? '<span class="badge badge-accent">Date-specific plan</span>' : '';
     const editButton = '<button type="button" class="btn btn-secondary btn-sm" id="workout-edit-date">Edit this date</button>';
     if (plan.type === 'rest' || !total) {
@@ -1426,7 +1427,7 @@
         '<div class="workout-checklist">' + rows + '</div>' +
         '<div class="workout-day-actions">' + editButton +
         (plan.isOverride ? '<button type="button" class="btn btn-ghost btn-sm" id="workout-clear-override">Remove date override</button>' : '') +
-        '<button type="button" class="btn btn-ghost btn-sm" id="workout-mark-missed">' + (status === 'missed' ? 'Undo missed status' : 'Mark day missed') + '</button></div>';
+        (canMarkMissed ? '<button type="button" class="btn btn-ghost btn-sm" id="workout-mark-missed">' + (status === 'missed' ? 'Undo missed status' : 'Mark day missed') + '</button>' : '') + '</div>';
     }
     container.querySelectorAll('[data-workout-check]').forEach((input) => input.addEventListener('change', () => {
       const current = state.workoutChecklists[dateISO] || { completed: [], touched: false };
