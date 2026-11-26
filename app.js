@@ -872,6 +872,7 @@
     const plan = state.schedule[weekday] || { title: "", exercises: [] };
     const note = document.getElementById("home-gym-date-note");
     const container = document.getElementById("home-gym-workout");
+    document.getElementById("home-gym-heading").textContent = dateISO === getTodayISO() ? "Today's Workout" : "Scheduled Workout";
     note.textContent = formatDisplayDate(dateISO) + " · " + (plan.title || getWeekdayName(weekday));
 
     if (!plan.exercises || plan.exercises.length === 0) {
