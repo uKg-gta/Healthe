@@ -198,7 +198,8 @@
       savedFoods: [],    // [ { id, name, baseQuantity, unit, calories, protein, carbs, fat, fibre, sugar, sodium, micronutrients: [] } ]
       weights: [],       // [ { id, date, weight, unit, heightCm } ]
       healthLogs: {},    // { 'YYYY-MM-DD': { water: number|null, sleep: number|null, steps: number|null } }
-      workoutChecklists: {}, // { 'YYYY-MM-DD': { completed: string[], touched: boolean } }
+      workoutChecklists: {}, // { 'YYYY-MM-DD': { completed: string[], touched: boolean, status?: 'completed'|'missed' } }
+      workoutOverrides: {}, // { 'YYYY-MM-DD': { type: 'rest'|'custom', title: string, exercises: [] } }
       photos: []         // [ { id, date, note, dataUrl, sizeBytes } ]
     };
   }
@@ -236,6 +237,9 @@
       workoutChecklists: raw.workoutChecklists && typeof raw.workoutChecklists === 'object' && !Array.isArray(raw.workoutChecklists)
         ? raw.workoutChecklists
         : {},
+      workoutOverrides: raw.workoutOverrides && typeof raw.workoutOverrides === 'object' && !Array.isArray(raw.workoutOverrides)
+        ? raw.workoutOverrides
+        : {},
       photos: Array.isArray(raw.photos) ? raw.photos : []
     };
 
@@ -271,6 +275,7 @@
     activeSection: 'home',
     homeDate: getTodayISO(),
     nutritionDate: getTodayISO(),
+    workoutDate: getTodayISO(),
     homeMode: '',
     homeTrendDetailOpen: false,
     progressRange: '30',
@@ -792,16 +797,22 @@
 
   function ensureScheduleExerciseIds() {
     let changed = false;
-    Object.values(state.schedule || {}).forEach((plan) => {
+    const plans = [...Object.values(state.schedule || {}), ...Object.values(state.workoutOverrides || {})];
+    plans.forEach((plan) => {
       if (!plan || !Array.isArray(plan.exercises)) return;
       plan.exercises.forEach((exercise) => {
-        if (!exercise.scheduleId) {
-          exercise.scheduleId = generateId("planex");
-          changed = true;
-        }
+        if (!exercise.scheduleId) { exercise.scheduleId = generateId("planex"); changed = true; }
       });
     });
     if (changed) saveState();
+  }
+
+  function getWorkoutPlanForDate(dateISO) {
+    const override = state.workoutOverrides && state.workoutOverrides[dateISO];
+    if (override) return { ...override, isOverride: true };
+    const weekday = String(getWeekdayFromISO(dateISO));
+    const plan = state.schedule[weekday] || { title: '', exercises: [] };
+    return { ...plan, type: plan.exercises && plan.exercises.length ? 'custom' : 'rest', isOverride: false };
   }
 
   function getHomeTargets() {
@@ -813,9 +824,8 @@
   }
 
   function getWorkoutCompletionPercent(dateISO) {
-    const weekday = String(getWeekdayFromISO(dateISO));
-    const plan = state.schedule[weekday];
-    if (!plan || !Array.isArray(plan.exercises) || plan.exercises.length === 0) return null;
+    const plan = getWorkoutPlanForDate(dateISO);
+    if (plan.type === 'rest' || !Array.isArray(plan.exercises) || !plan.exercises.length) return null;
     const daily = state.workoutChecklists[dateISO];
     if (!daily || daily.touched !== true || !Array.isArray(daily.completed)) return null;
     const completed = new Set(daily.completed);
@@ -868,25 +878,19 @@
   }
 
   function renderHomeGymMode(dateISO) {
+    const plan = getWorkoutPlanForDate(dateISO);
     const weekday = String(getWeekdayFromISO(dateISO));
-    const plan = state.schedule[weekday] || { title: "", exercises: [] };
     const note = document.getElementById("home-gym-date-note");
     const container = document.getElementById("home-gym-workout");
     document.getElementById("home-gym-heading").textContent = dateISO === getTodayISO() ? "Today's Workout" : "Scheduled Workout";
-    note.textContent = formatDisplayDate(dateISO) + " · " + (plan.title || getWeekdayName(weekday));
-
-    if (!plan.exercises || plan.exercises.length === 0) {
-      container.innerHTML =
-        '<div class="home-rest-state">' +
-          '<div class="home-rest-icon" aria-hidden="true">✓</div>' +
-          '<strong>No workout scheduled</strong>' +
-          '<span>' + esc(getWeekdayName(weekday)) + ' is set as a rest day or has no exercises yet.</span>' +
-          '<button type="button" class="btn btn-secondary btn-sm" id="home-open-schedule">Open Schedule</button>' +
-        '</div>';
+    note.textContent = formatDisplayDate(dateISO) + " · " + (plan.title || getWeekdayName(weekday)) + (plan.isOverride ? " · Date override" : "");
+    if (plan.type === "rest" || !plan.exercises || !plan.exercises.length) {
+      container.innerHTML = '<div class="home-rest-state"><div class="home-rest-icon" aria-hidden="true">✓</div><strong>Rest day</strong><span>' +
+        esc(plan.isOverride ? "A rest day was set for this date." : getWeekdayName(weekday) + " is set as a rest day.") +
+        '</span><button type="button" class="btn btn-secondary btn-sm" id="home-open-schedule">View workout plan</button></div>';
       document.getElementById("home-open-schedule").addEventListener("click", () => navigateTo("workouts", "workouts-schedule"));
       return;
     }
-
     const daily = state.workoutChecklists[dateISO] || { completed: [], touched: false };
     const completed = new Set(Array.isArray(daily.completed) ? daily.completed : []);
     const completedCount = plan.exercises.filter((exercise) => completed.has(exercise.scheduleId)).length;
@@ -901,32 +905,23 @@
         '<span>' + (Number(exercise.defaultSets) || 3) + ' sets × ' + (Number(exercise.defaultReps) || 10) + ' reps</span></span>' +
         '<span class="home-checkmark" aria-hidden="true">✓</span></label>';
     }).join("");
-
-    container.innerHTML =
-      '<div class="home-workout-progress"><div class="flex-between">' +
-        '<span class="metric-sub">' + completedCount + ' of ' + total + ' exercises completed</span>' +
-        '<strong class="home-workout-percent">' + percent + '%</strong></div>' +
-        '<div class="progress-track"><div class="progress-fill" style="width:' + percent + '%"></div></div></div>' +
-      '<div class="home-checklist">' + rows + '</div>' +
-      '<div class="home-workout-footer"><span class="metric-sub">Tick each exercise as you complete it.</span>' +
-        '<button type="button" class="link-btn" id="home-open-schedule">Edit schedule</button></div>';
-
+    container.innerHTML = '<div class="home-workout-progress"><div class="flex-between"><span class="metric-sub">' +
+      completedCount + ' of ' + total + ' exercises completed</span><strong class="home-workout-percent">' + percent +
+      '%</strong></div><div class="progress-track"><div class="progress-fill" style="width:' + percent + '%"></div></div></div>' +
+      '<div class="home-checklist">' + rows + '</div><div class="home-workout-footer"><span class="metric-sub">Checklist is saved for this date.</span>' +
+      '<button type="button" class="link-btn" id="home-open-schedule">Edit this date</button></div>';
     container.querySelectorAll("[data-home-exercise]").forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
         const current = state.workoutChecklists[dateISO] || { completed: [], touched: false };
         const completedIds = new Set(Array.isArray(current.completed) ? current.completed : []);
         if (checkbox.checked) completedIds.add(checkbox.dataset.homeExercise);
         else completedIds.delete(checkbox.dataset.homeExercise);
-        state.workoutChecklists[dateISO] = {
-          completed: Array.from(completedIds),
-          touched: true,
-          updatedAt: new Date().toISOString()
-        };
+        state.workoutChecklists[dateISO] = { ...current, completed: Array.from(completedIds), touched: true, status: "in_progress", updatedAt: new Date().toISOString() };
         saveState();
         renderHome();
       });
     });
-    document.getElementById("home-open-schedule").addEventListener("click", () => navigateTo("workouts", "workouts-schedule"));
+    document.getElementById("home-open-schedule").addEventListener("click", () => navigateTo("workouts", "workouts-today"));
   }
 
   function renderHomeNormalMode(dateISO) {
@@ -1385,14 +1380,75 @@
   }
 
   function renderWorkouts() {
-    if (document.getElementById('workout-exercise-rows').children.length === 0) {
-      resetWorkoutForm(document.getElementById('workout-date').value || getTodayISO());
-    }
-    renderPersonalRecords();
-    renderWeekdayComparison();
-    renderWorkoutHistory();
+    const dateInput = document.getElementById('workout-selected-date');
+    if (!dateInput.value) dateInput.value = uiState.workoutDate || getTodayISO();
+    uiState.workoutDate = dateInput.value;
+    renderWorkoutDay(dateInput.value);
     renderWorkoutSchedule();
+    renderWeekdayComparison();
     renderExerciseLibrary();
+  }
+
+  function renderWorkoutDay(dateISO) {
+    const plan = getWorkoutPlanForDate(dateISO);
+    const container = document.getElementById('workout-daily-content');
+    const weekday = getWeekdayName(getWeekdayFromISO(dateISO));
+    const daily = state.workoutChecklists[dateISO] || { completed: [], touched: false };
+    const completed = new Set(Array.isArray(daily.completed) ? daily.completed : []);
+    const total = plan.exercises ? plan.exercises.length : 0;
+    const done = total ? plan.exercises.filter((ex) => completed.has(ex.scheduleId)).length : 0;
+    const percent = total ? Math.round(done / total * 100) : 0;
+    const status = daily.status || (total && done === total ? 'completed' : daily.touched ? 'in_progress' : '');
+    const overrideLabel = plan.isOverride ? '<span class="badge badge-accent">Date-specific plan</span>' : '';
+    const editButton = '<button type="button" class="btn btn-secondary btn-sm" id="workout-edit-date">Edit this date</button>';
+    if (plan.type === 'rest' || !total) {
+      container.innerHTML = '<div class="workout-day-heading"><div><div class="list-item-title">' + esc(weekday) +
+        ' · ' + esc(formatDisplayDate(dateISO)) + '</div><p class="card-note">No workout planned for this date.</p></div>' + overrideLabel + '</div>' +
+        '<div class="workout-rest-panel"><strong>Rest day</strong><span>Recovery is part of the plan. You can set a one-day workout without changing your weekly schedule.</span>' +
+        '<div class="btn-group"><button type="button" class="btn btn-primary btn-sm" id="workout-edit-date">Change this date</button>' +
+        (plan.isOverride ? '<button type="button" class="btn btn-ghost btn-sm" id="workout-clear-override">Remove date override</button>' : '') + '</div></div>';
+    } else {
+      const rows = plan.exercises.map((ex) => {
+        const id = String(ex.scheduleId);
+        const checked = completed.has(id);
+        return '<label class="workout-check-row ' + (checked ? 'is-complete' : '') + '">' +
+          '<input type="checkbox" data-workout-check="' + esc(id) + '" ' + (checked ? 'checked' : '') + '>' +
+          '<span class="workout-check-copy"><strong>' + esc(ex.name) + '</strong><small>' +
+          (Number(ex.defaultSets) || 3) + ' sets × ' + (Number(ex.defaultReps) || 10) + ' reps' +
+          (ex.equipment ? ' · ' + esc(ex.equipment) : '') + '</small></span><span class="workout-check-tick">✓</span></label>';
+      }).join('');
+      container.innerHTML = '<div class="workout-day-heading"><div><div class="list-item-title">' + esc(plan.title || weekday + ' Workout') +
+        '</div><p class="card-note">' + esc(formatDisplayDate(dateISO)) + ' · ' + done + ' of ' + total + ' completed</p></div>' +
+        '<div class="workout-day-badges">' + overrideLabel + (status === 'missed' ? '<span class="badge badge-warning">Marked missed</span>' : '') + '</div></div>' +
+        '<div class="workout-progress-row"><div class="progress-track"><div class="progress-fill" style="width:' + percent + '%"></div></div><strong>' + percent + '%</strong></div>' +
+        '<div class="workout-checklist">' + rows + '</div>' +
+        '<div class="workout-day-actions">' + editButton +
+        (plan.isOverride ? '<button type="button" class="btn btn-ghost btn-sm" id="workout-clear-override">Remove date override</button>' : '') +
+        '<button type="button" class="btn btn-ghost btn-sm" id="workout-mark-missed">' + (status === 'missed' ? 'Undo missed status' : 'Mark day missed') + '</button></div>';
+    }
+    container.querySelectorAll('[data-workout-check]').forEach((input) => input.addEventListener('change', () => {
+      const current = state.workoutChecklists[dateISO] || { completed: [], touched: false };
+      const ids = new Set(Array.isArray(current.completed) ? current.completed : []);
+      if (input.checked) ids.add(input.dataset.workoutCheck); else ids.delete(input.dataset.workoutCheck);
+      const next = Array.from(ids);
+      const allDone = next.length >= total;
+      state.workoutChecklists[dateISO] = { ...current, completed: next, touched: true, status: allDone ? 'completed' : 'in_progress', updatedAt: new Date().toISOString() };
+      saveState(); renderWorkoutDay(dateISO); renderWeekdayComparison();
+    }));
+    const edit = document.getElementById('workout-edit-date');
+    if (edit) edit.addEventListener('click', () => openDateWorkoutEditor(dateISO));
+    const clear = document.getElementById('workout-clear-override');
+    if (clear) clear.addEventListener('click', () => {
+      confirmAction({ title: 'Remove date override', message: 'Restore the repeating weekday plan for this date? Your saved checklist will remain unchanged.', confirmLabel: 'Restore weekly plan', onConfirm: () => {
+        delete state.workoutOverrides[dateISO]; saveState(); renderWorkoutDay(dateISO); renderWorkoutSchedule(); renderHome();
+      }});
+    });
+    const missed = document.getElementById('workout-mark-missed');
+    if (missed) missed.addEventListener('click', () => {
+      const current = state.workoutChecklists[dateISO] || { completed: [], touched: false };
+      state.workoutChecklists[dateISO] = { ...current, touched: true, status: current.status === 'missed' ? 'in_progress' : 'missed', updatedAt: new Date().toISOString() };
+      saveState(); renderWorkoutDay(dateISO); renderWeekdayComparison();
+    });
   }
 
   function computePersonalRecords() {
@@ -1754,37 +1810,115 @@
     const grid = document.getElementById('workout-schedule-grid');
     grid.innerHTML = WEEKDAYS.map((wd) => {
       const plan = state.schedule[String(wd.id)] || { title: '', exercises: [] };
-      const hasPlan = plan.title || plan.exercises.length > 0;
-      return `
-        <div class="schedule-day-card">
-          <div class="flex-between">
-            <strong>${wd.name}</strong>
-            <div class="btn-group">
-              <button type="button" class="btn btn-secondary btn-sm" data-sched-edit="${wd.id}">${hasPlan ? 'Edit' : 'Configure'}</button>
-              ${hasPlan ? `<button type="button" class="btn btn-ghost btn-sm" data-sched-clear="${wd.id}">Clear</button>` : ''}
-            </div>
-          </div>
-          ${hasPlan
-            ? `<div class="list-item-title">${esc(plan.title || 'Scheduled Session')}</div>
-               <div class="list-item-meta">${plan.exercises.length ? plan.exercises.map((e) => `${esc(e.name)} (${e.defaultSets || 3}×${e.defaultReps || 10})`).join('<br>') : 'No exercises listed yet.'}</div>`
-            : `<div class="metric-sub">Rest / Unscheduled</div>`
-          }
-        </div>
-      `;
+      const exercises = Array.isArray(plan.exercises) ? plan.exercises : [];
+      const rest = exercises.length === 0;
+      return '<div class="schedule-day-card"><div class="flex-between"><strong>' + wd.name + '</strong>' +
+        '<button type="button" class="btn btn-secondary btn-sm" data-sched-edit="' + wd.id + '">' + (rest ? 'Set workout' : 'Edit') + '</button></div>' +
+        (rest ? '<span class="badge">Rest day</span>' : '<div class="list-item-title">' + esc(plan.title || 'Workout') + '</div><div class="schedule-exercise-list">' +
+          exercises.map((ex) => '<div>' + esc(ex.name) + '<small>' + (Number(ex.defaultSets) || 3) + ' × ' + (Number(ex.defaultReps) || 10) + ' reps</small></div>').join('') + '</div>') +
+        '</div>';
     }).join('');
+    grid.querySelectorAll('[data-sched-edit]').forEach((btn) => btn.addEventListener('click', () => openScheduleEditorModal(btn.dataset.schedEdit)));
+  }
 
-    grid.querySelectorAll('[data-sched-edit]').forEach((b) => {
-      b.addEventListener('click', () => openScheduleEditorModal(b.dataset.schedEdit));
+  function buildScheduleEditor(weekdayId, dateISO = null) {
+    const isDate = Boolean(dateISO);
+    const key = isDate ? dateISO : String(weekdayId);
+    const original = isDate ? getWorkoutPlanForDate(dateISO) : (state.schedule[key] || { title: '', exercises: [] });
+    const isRest = original.type === 'rest' || (!original.exercises || original.exercises.length === 0);
+    const list = (original.exercises || []).map((ex) => ({ ...ex, scheduleId: ex.scheduleId || generateId('planex') }));
+    function rowsHtml() {
+      if (!list.length) return '<div class="empty-state">No exercises added. Choose Rest day or add exercises below.</div>';
+      return list.map((ex, i) => '<div class="schedule-edit-row"><div class="schedule-edit-main"><strong>' + esc(ex.name) +
+        '</strong><small>' + esc(ex.equipment || 'Equipment not specified') + '</small></div>' +
+        '<label>Sets<input type="number" min="1" max="20" value="' + (Number(ex.defaultSets) || 3) + '" data-row-sets="' + i + '"></label>' +
+        '<label>Reps<input type="number" min="1" max="100" value="' + (Number(ex.defaultReps) || 10) + '" data-row-reps="' + i + '"></label>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-row-remove="' + i + '" aria-label="Remove ' + esc(ex.name) + '">Remove</button></div>').join('');
+    }
+    openModal({
+      title: isDate ? 'Change — ' + formatDisplayDate(dateISO) : 'Weekly plan — ' + getWeekdayName(key),
+      bodyHtml: '<div class="form-stack">' +
+        '<div class="form-group"><label for="schedule-plan-type">Plan type</label><select id="schedule-plan-type"><option value="workout"' + (!isRest ? ' selected' : '') + '>Workout</option><option value="rest"' + (isRest ? ' selected' : '') + '>Rest day</option></select></div>' +
+        '<div id="schedule-workout-fields">' +
+        '<div class="form-group"><label for="sched-title-input">Workout name</label><input type="text" id="sched-title-input" value="' + esc(original.title || '') + '" placeholder="e.g. Upper body, Full body"></div>' +
+        '<div class="form-row-3"><div class="form-group" style="grid-column:span 2"><label for="sched-ex-pick">Add exercise</label><select id="sched-ex-pick">' +
+        state.exercises.map((e) => '<option value="' + esc(e.id) + '">' + esc(e.name) + ' (' + esc(e.equipment || 'Other') + ')</option>').join('') +
+        '</select></div><div class="form-group"><label>&nbsp;</label><button type="button" class="btn btn-secondary btn-block" id="sched-add-ex-btn">+ Add</button></div></div>' +
+        '<div id="sched-ex-list" class="schedule-edit-list">' + rowsHtml() + '</div></div></div>',
+      footerButtons: [
+        { label: 'Cancel', className: 'btn-secondary', onClick: closeModal },
+        { label: isDate ? 'Save date override' : 'Save weekly plan', className: 'btn-primary', onClick: () => {
+          const type = document.getElementById('schedule-plan-type').value;
+          const fields = document.getElementById('schedule-workout-fields');
+          fields.querySelectorAll('[data-row-sets]').forEach((input) => { const i = Number(input.dataset.rowSets); list[i].defaultSets = Math.max(1, Math.min(20, Number(input.value) || 3)); });
+          fields.querySelectorAll('[data-row-reps]').forEach((input) => { const i = Number(input.dataset.rowReps); list[i].defaultReps = Math.max(1, Math.min(100, Number(input.value) || 10)); });
+          const plan = type === 'rest' ? { type: 'rest', title: '', exercises: [] } : { type: 'custom', title: document.getElementById('sched-title-input').value.trim(), exercises: list };
+          if (isDate) state.workoutOverrides[dateISO] = plan;
+          else state.schedule[key] = { title: plan.title, exercises: plan.exercises };
+          saveState(); closeModal();
+          if (isDate) renderWorkoutDay(dateISO); else renderWorkoutSchedule();
+          renderHome();
+          showToast(isDate ? 'Date-specific plan saved.' : getWeekdayName(key) + ' plan saved.');
+        }}
+      ],
+      onOpen: (body) => {
+        const fields = body.querySelector('#schedule-workout-fields');
+        const type = body.querySelector('#schedule-plan-type');
+        type.addEventListener('change', () => fields.classList.toggle('hidden', type.value === 'rest'));
+        const listEl = body.querySelector('#sched-ex-list');
+        function bindRows() {
+          listEl.querySelectorAll('[data-row-remove]').forEach((button) => button.addEventListener('click', () => {
+            const idx = Number(button.dataset.rowRemove); list.splice(idx, 1); listEl.innerHTML = rowsHtml(); bindRows();
+          }));
+        }
+        bindRows();
+        body.querySelector('#sched-add-ex-btn').addEventListener('click', () => {
+          const found = state.exercises.find((e) => e.id === body.querySelector('#sched-ex-pick').value);
+          if (!found) return;
+          list.push({ scheduleId: generateId('planex'), name: found.name, equipment: found.equipment, defaultSets: 3, defaultReps: 10 });
+          listEl.innerHTML = rowsHtml(); bindRows();
+        });
+      }
     });
-    grid.querySelectorAll('[data-sched-clear]').forEach((b) => {
-      b.addEventListener('click', () => {
-        const wd = b.dataset.schedClear;
-        state.schedule[wd] = { title: '', exercises: [] };
-        saveState();
-        renderWorkoutSchedule();
-        showToast(`Cleared ${getWeekdayName(wd)} schedule.`);
-      });
-    });
+  }
+
+  function openScheduleEditorModal(weekdayId) { buildScheduleEditor(weekdayId); }
+  function openDateWorkoutEditor(dateISO) { buildScheduleEditor(null, dateISO); }
+
+  function renderWeekdayComparison() {
+    const select = document.getElementById('compare-weekday-select');
+    const results = document.getElementById('weekday-comparison-results');
+    if (!select || !results) return;
+    const weekday = Number(select.value);
+    const today = getTodayISO();
+    const dates = new Set([...Object.keys(state.workoutChecklists || {}), ...Object.keys(state.workoutOverrides || {})]);
+    const start = shiftISODate(today, -365);
+    let rows = [];
+    for (let date = start; date <= today; date = shiftISODate(date, 1)) {
+      if (getWeekdayFromISO(date) !== weekday) continue;
+      const plan = getWorkoutPlanForDate(date);
+      if (plan.type === 'rest' || !plan.exercises || !plan.exercises.length) continue;
+      const log = state.workoutChecklists[date];
+      if (!log || !log.touched) continue;
+      const completed = new Set(log.completed || []);
+      const done = plan.exercises.filter((ex) => completed.has(ex.scheduleId)).length;
+      rows.push({ date, done, total: plan.exercises.length, percent: Math.round(done / plan.exercises.length * 100), status: log.status || (done === plan.exercises.length ? 'completed' : 'in_progress') });
+    }
+    if (!rows.length) {
+      results.innerHTML = '<div class="empty-state">No recorded ' + esc(getWeekdayName(weekday)) + ' workout checklists yet. Complete or mark a scheduled day as missed to build your comparison.</div>';
+      return;
+    }
+    const avg = Math.round(rows.reduce((sum, row) => sum + row.percent, 0) / rows.length);
+    const completedDays = rows.filter((row) => row.status === 'completed' || row.percent === 100).length;
+    const missedDays = rows.filter((row) => row.status === 'missed').length;
+    results.innerHTML = '<div class="summary-strip"><div class="stat-box"><div class="stat-label">Recorded days</div><div class="metric-value">' + rows.length + '</div></div>' +
+      '<div class="stat-box"><div class="stat-label">Average completion</div><div class="metric-value">' + avg + '%</div></div>' +
+      '<div class="stat-box"><div class="stat-label">Completed days</div><div class="metric-value">' + completedDays + '</div></div>' +
+      '<div class="stat-box"><div class="stat-label">Marked missed</div><div class="metric-value">' + missedDays + '</div></div></div>' +
+      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Date</th><th>Completed</th><th>Completion</th><th>Status</th></tr></thead><tbody>' +
+      rows.sort((a,b) => b.date.localeCompare(a.date)).map((row) => '<tr><td>' + esc(formatDisplayDate(row.date)) + '</td><td>' + row.done + ' / ' + row.total + '</td><td>' + row.percent + '%</td><td>' +
+        (row.status === 'missed' ? '<span class="badge badge-warning">Missed</span>' : row.percent === 100 ? '<span class="badge badge-positive">Completed</span>' : '<span class="badge">In progress</span>') +
+        '</td></tr>').join('') + '</tbody></table></div>';
   }
 
   function openScheduleEditorModal(weekdayId) {
@@ -3483,42 +3617,18 @@
       }
     });
 
-    // Workouts events
-    document.getElementById('btn-new-workout-session').addEventListener('click', () => {
-      activateSubtab('workouts', 'workouts-log');
-      resetWorkoutForm(getTodayISO());
+    // Workouts: daily checklist, recurring schedule and weekday consistency
+    const workoutDate = document.getElementById('workout-selected-date');
+    workoutDate.value = uiState.workoutDate || getTodayISO();
+    workoutDate.addEventListener('change', () => { if (workoutDate.value) { uiState.workoutDate = workoutDate.value; renderWorkoutDay(workoutDate.value); } });
+    document.getElementById('workout-date-prev').addEventListener('click', () => {
+      workoutDate.value = shiftISODate(workoutDate.value, -1); uiState.workoutDate = workoutDate.value; renderWorkoutDay(workoutDate.value);
     });
-    document.getElementById('btn-add-workout-exercise-row').addEventListener('click', () => addWorkoutExerciseRow());
-    document.getElementById('btn-load-weekday-schedule').addEventListener('click', loadWeekdayScheduleIntoForm);
-    document.getElementById('workout-cancel-edit').addEventListener('click', () => resetWorkoutForm(getTodayISO()));
-    document.getElementById('workout-session-form').addEventListener('submit', handleWorkoutFormSubmit);
-    document.getElementById('pr-search-input').addEventListener('input', renderPersonalRecords);
-
-    document.getElementById('compare-weekday-select').addEventListener('change', (e) => {
-      uiState.compareWeekday = e.target.value;
-      uiState.compareCurrentId = '';
-      uiState.compareBaselineId = '';
-      renderWeekdayComparison();
+    document.getElementById('workout-date-next').addEventListener('click', () => {
+      workoutDate.value = shiftISODate(workoutDate.value, 1); uiState.workoutDate = workoutDate.value; renderWorkoutDay(workoutDate.value);
     });
-    document.getElementById('compare-current-session').addEventListener('change', (e) => {
-      uiState.compareCurrentId = e.target.value;
-      renderWeekdayComparison();
-    });
-    document.getElementById('compare-baseline-session').addEventListener('change', (e) => {
-      uiState.compareBaselineId = e.target.value;
-      renderWeekdayComparison();
-    });
-
-    document.getElementById('history-filter-date').addEventListener('change', renderWorkoutHistory);
-    document.getElementById('history-filter-weekday').addEventListener('change', renderWorkoutHistory);
-    document.getElementById('history-filter-exercise').addEventListener('change', renderWorkoutHistory);
-    document.getElementById('history-clear-filters').addEventListener('click', () => {
-      document.getElementById('history-filter-date').value = '';
-      document.getElementById('history-filter-weekday').value = '';
-      document.getElementById('history-filter-exercise').value = '';
-      renderWorkoutHistory();
-    });
-
+    document.getElementById('compare-weekday-select').value = uiState.compareWeekday;
+    document.getElementById('compare-weekday-select').addEventListener('change', (e) => { uiState.compareWeekday = e.target.value; renderWeekdayComparison(); });
     document.getElementById('btn-add-custom-exercise').addEventListener('click', () => openCustomExerciseModal());
     document.getElementById('library-search').addEventListener('input', renderExerciseLibrary);
     document.getElementById('library-filter-equipment').addEventListener('change', renderExerciseLibrary);
