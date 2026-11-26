@@ -159,12 +159,13 @@
           </article>
         </div>
         <div id="subtab-workouts-library" class="subtab-panel">
-          <article class="card">
-            <div class="card-header"><h2 class="card-title">Exercise Library</h2><button type="button" class="btn btn-primary btn-sm" id="btn-add-custom-exercise">+ Custom Exercise</button></div>
-            <div class="filter-bar">
-              <div class="form-group"><label for="library-search">Search</label><input type="search" id="library-search" placeholder="Search exercises..."></div>
-              <div class="form-group"><label for="library-filter-equipment">Equipment</label><select id="library-filter-equipment"><option value="">All equipment</option><option value="Barbell">Barbell</option><option value="Dumbbell">Dumbbell</option><option value="Machine stack">Machine stack</option><option value="Bodyweight">Bodyweight</option></select></div>
+          <article class="card exercise-library-card">
+            <div class="card-header"><div><h2 class="card-title">Exercise Library</h2><p class="card-note">Browse exercises by muscle group or search by name</p></div><button type="button" class="btn btn-primary btn-sm" id="btn-add-custom-exercise">+ Custom Exercise</button></div>
+            <div class="library-toolbar">
+              <div class="library-search-wrap"><label class="sr-only" for="library-search">Search exercises</label><input type="search" id="library-search" placeholder="Search exercise name..." autocomplete="off"><button type="button" id="library-search-clear" class="library-clear-btn hidden" aria-label="Clear search">×</button></div>
+              <div class="library-view-tabs" role="tablist" aria-label="Exercise library view"><button type="button" class="library-view-tab active" data-library-view="all" role="tab" aria-selected="true">All exercises</button><button type="button" class="library-view-tab" data-library-view="favorites" role="tab" aria-selected="false">★ Favourites</button></div>
             </div>
+            <div id="library-muscle-groups" class="library-muscle-groups" aria-label="Filter by muscle group"></div>
             <div id="exercise-library-list" class="card-body"></div>
           </article>
         </div>
