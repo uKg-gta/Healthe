@@ -1276,3 +1276,47 @@ input:disabled, select:disabled {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+/* Home dashboard — preserve the existing GymLog visual language */
+.header-actions { display:flex; align-items:center; gap:8px; }
+.quick-menu-wrap { position:relative; }
+.quick-actions-toggle { font-size:1.45rem; line-height:1; font-weight:400; }
+.quick-actions-menu { position:absolute; top:calc(100% + 9px); right:0; z-index:70; width:210px; padding:6px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-md); display:flex; flex-direction:column; gap:2px; }
+.quick-actions-menu button { display:flex; align-items:center; gap:9px; width:100%; padding:10px 9px; border:0; border-radius:var(--radius-sm); background:transparent; color:var(--text); text-align:left; font-size:.84rem; }
+.quick-actions-menu button:hover { background:var(--surface-subtle); }
+.quick-actions-menu button span { color:var(--accent); font-weight:700; }
+.home-clock-strip { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; background:var(--surface-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); }
+.home-clock-time,.home-clock-date { display:flex; flex-direction:column; gap:1px; }
+.home-clock-date { text-align:right; }
+.home-clock-label { color:var(--text-muted); font-size:.62rem; font-weight:700; letter-spacing:.07em; }
+.home-clock-strip strong { font-size:.82rem; font-weight:650; font-variant-numeric:tabular-nums; }
+.home-section-header { align-items:center; }
+.home-mode-panel,.home-trends-detail { display:flex; flex-direction:column; gap:14px; }
+.home-gym-card { border-color:var(--border-strong); }
+.home-workout-progress { display:flex; flex-direction:column; gap:7px; margin-bottom:2px; }
+.home-workout-percent { font-size:.9rem; font-variant-numeric:tabular-nums; }
+.home-checklist { display:flex; flex-direction:column; gap:7px; }
+.home-checklist-row { display:flex; align-items:center; gap:11px; min-height:58px; padding:10px 11px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); cursor:pointer; transition:background .15s,border-color .15s; }
+.home-checklist-row:hover { background:var(--surface-subtle); }
+.home-checklist-row input { width:19px; height:19px; flex:0 0 auto; accent-color:var(--accent); }
+.home-checklist-copy { display:flex; flex:1; min-width:0; flex-direction:column; gap:2px; }
+.home-checklist-copy strong { font-size:.88rem; font-weight:650; }
+.home-checklist-copy span { color:var(--text-muted); font-size:.76rem; }
+.home-checklist-row.is-complete .home-checklist-copy strong { color:var(--text-muted); text-decoration:line-through; }
+.home-checkmark { color:var(--positive); opacity:0; font-weight:700; }
+.home-checklist-row.is-complete .home-checkmark { opacity:1; }
+.home-workout-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding-top:3px; }
+.home-rest-state { display:flex; align-items:center; flex-direction:column; gap:8px; padding:24px 12px; text-align:center; }
+.home-rest-state strong { font-size:.95rem; }
+.home-rest-state>span { max-width:300px; color:var(--text-muted); font-size:.82rem; }
+.home-rest-icon { width:42px; height:42px; display:grid; place-items:center; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-size:1.2rem; font-weight:700; }
+.home-chart-legend { display:flex; flex-wrap:wrap; gap:12px; margin:0 0 5px; color:var(--text-secondary); font-size:.72rem; }
+.home-chart-legend>span { display:inline-flex; align-items:center; }
+.home-chart-legend .legend-dot { width:8px; height:8px; margin-right:5px; }
+.home-combined-chart { height:220px; }
+.home-metrics-grid { display:grid; grid-template-columns:1fr; gap:12px; }
+.home-metric-card { display:block; width:100%; color:var(--text); text-align:left; cursor:pointer; transition:border-color .15s,transform .15s; }
+.home-metric-card:hover,.home-metric-card:focus-visible { border-color:var(--accent); outline:none; }
+.home-metric-card .card-header { margin-bottom:10px; }
+.home-card-arrow { color:var(--text-muted); font-size:.9rem; }
+.home-trends-detail .chart-container { height:230px; }
+@media (min-width:560px) { .home-metrics-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
