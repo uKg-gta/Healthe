@@ -297,6 +297,8 @@
     compareWeekday: String(new Date().getDay()),
     compareCurrentId: '',
     compareBaselineId: '',
+    libraryView: 'all',
+    libraryMuscle: '',
     photoCompareA: '',
     photoCompareB: ''
   };
@@ -1893,7 +1895,7 @@
         body.querySelector('#sched-add-ex-btn').addEventListener('click', () => {
           const found = state.exercises.find((e) => e.id === body.querySelector('#sched-ex-pick').value);
           if (!found) return;
-          list.push({ scheduleId: generateId('planex'), name: found.name, equipment: found.equipment, defaultSets: 3, defaultReps: 10 });
+          list.push({ scheduleId: generateId('planex'), exerciseId: found.id, name: found.name, equipment: found.equipment, defaultSets: 3, defaultReps: 10 });
           listEl.innerHTML = rowsHtml(); bindRows();
         });
       }
@@ -2019,7 +2021,7 @@
           const exId = bodyEl.querySelector('#sched-ex-pick').value;
           const found = state.exercises.find((e) => e.id === exId);
           if (found) {
-            workingList.push({ name: found.name, equipment: found.equipment, defaultSets: 3, defaultReps: 10 });
+            workingList.push({ scheduleId: generateId('planex'), exerciseId: found.id, name: found.name, equipment: found.equipment, defaultSets: 3, defaultReps: 10 });
             listEl.innerHTML = buildRowsHtml();
             bindRemovers();
           }
@@ -2028,111 +2030,43 @@
     });
   }
 
+
   function renderExerciseLibrary() {
-    const query = (document.getElementById('library-search').value || '').trim().toLowerCase();
-    const eqFilter = document.getElementById('library-filter-equipment').value;
-    const list = state.exercises.filter((e) => {
-      if (query && !e.name.toLowerCase().includes(query)) return false;
-      if (eqFilter && e.equipment !== eqFilter) return false;
-      return true;
-    });
-
-    const container = document.getElementById('exercise-library-list');
-    if (list.length === 0) {
-      container.innerHTML = '<div class="empty-state">No exercises match your search.</div>';
-      return;
-    }
-
-    container.innerHTML = `<div class="item-list">${list
-      .map(
-        (ex) => `
-        <div class="list-item">
-          <div class="list-item-top">
-            <div>
-              <div class="list-item-title">${esc(ex.name)}</div>
-              <div class="list-item-meta">${esc(ex.equipment)} &middot; ${ex.custom ? 'Custom exercise' : 'Built-in'}</div>
-            </div>
-            ${ex.custom
-              ? `<div class="list-item-actions">
-                  <button type="button" class="btn btn-secondary btn-sm" data-ex-edit="${esc(ex.id)}">Edit</button>
-                  <button type="button" class="btn btn-ghost btn-sm" data-ex-del="${esc(ex.id)}">Delete</button>
-                 </div>`
-              : `<span class="badge">Built-in</span>`
-            }
-          </div>
-        </div>
-      `
-      )
-      .join('')}</div>`;
-
-    container.querySelectorAll('[data-ex-edit]').forEach((b) => {
-      b.addEventListener('click', () => {
-        const ex = state.exercises.find((e) => e.id === b.dataset.exEdit);
-        if (ex) openCustomExerciseModal(ex);
-      });
-    });
-    container.querySelectorAll('[data-ex-del]').forEach((b) => {
-      b.addEventListener('click', () => {
-        const ex = state.exercises.find((e) => e.id === b.dataset.exDel);
-        if (!ex) return;
-        confirmAction({
-          title: 'Delete Custom Exercise',
-          message: `Delete "${esc(ex.name)}" from your exercise library? Existing workout history entries remain intact.`,
-          confirmLabel: 'Delete',
-          danger: true,
-          onConfirm: () => {
-            state.exercises = state.exercises.filter((e) => e.id !== ex.id);
-            saveState();
-            renderWorkouts();
-            showToast('Custom exercise deleted.');
-          }
-        });
-      });
+    const query=(document.getElementById('library-search').value||'').trim().toLowerCase();
+    const view=uiState.libraryView||'all', muscle=uiState.libraryMuscle||'';
+    const list=state.exercises.filter((ex)=>{if(query&&!String(ex.name||'').toLowerCase().includes(query))return false;if(view==='favorites'&&!ex.favorite)return false;if(muscle&&ex.muscleGroup!==muscle)return false;return true;});
+    document.getElementById('library-search-clear').classList.toggle('hidden',!query);
+    document.querySelectorAll('[data-library-view]').forEach((b)=>{const active=b.dataset.libraryView===view;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});
+    const groups=document.getElementById('library-muscle-groups');
+    groups.innerHTML='<button type="button" class="muscle-chip '+(!muscle?'active':'')+'" data-muscle="">All groups</button>'+MUSCLE_GROUPS.map((g)=>'<button type="button" class="muscle-chip '+(muscle===g?'active':'')+'" data-muscle="'+esc(g)+'">'+esc(g)+'</button>').join('');
+    groups.querySelectorAll('[data-muscle]').forEach((b)=>b.addEventListener('click',()=>{uiState.libraryMuscle=b.dataset.muscle;renderExerciseLibrary();}));
+    const container=document.getElementById('exercise-library-list');if(!list.length){container.innerHTML='';return;}
+    container.innerHTML='<div class="exercise-library-grid">'+list.map((ex)=>{const photo=ex.demoPhoto?'<img src="'+ex.demoPhoto+'" alt="'+esc(ex.name)+' demonstration" loading="lazy">':'<div class="exercise-photo-placeholder"><span>GYMLOG</span><small>Exercise photo</small></div>';return '<article class="exercise-library-item"><button type="button" class="exercise-card-main" data-ex-open="'+esc(ex.id)+'"><div class="exercise-card-photo">'+photo+'</div><div class="exercise-card-copy"><strong>'+esc(ex.name)+'</strong><span>'+esc(ex.muscleGroup||'Uncategorised')+'</span><small>'+esc(ex.equipment||'Equipment not specified')+'</small></div></button><button type="button" class="exercise-favorite-btn '+(ex.favorite?'is-favorite':'')+'" data-ex-fav="'+esc(ex.id)+'" aria-label="'+(ex.favorite?'Remove from':'Add to')+' favourites" aria-pressed="'+String(Boolean(ex.favorite))+'">★</button></article>';}).join('')+'</div>';
+    container.querySelectorAll('[data-ex-open]').forEach((b)=>b.addEventListener('click',()=>{const ex=state.exercises.find((x)=>x.id===b.dataset.exOpen);if(ex)openExerciseDetail(ex);}));
+    container.querySelectorAll('[data-ex-fav]').forEach((b)=>b.addEventListener('click',()=>{const ex=state.exercises.find((x)=>x.id===b.dataset.exFav);if(!ex)return;ex.favorite=!ex.favorite;saveState();renderExerciseLibrary();}));
+  }
+  function openExerciseDetail(ex) {
+    const photo=ex.demoPhoto?'<img class="exercise-detail-photo" src="'+ex.demoPhoto+'" alt="'+esc(ex.name)+' demonstration">':'<div class="exercise-detail-photo exercise-photo-placeholder"><span>GYMLOG</span><small>Exercise photo not available yet</small></div>';
+    const steps=Array.isArray(ex.instructions)&&ex.instructions.length?ex.instructions:['Set up in a stable position and brace before starting.','Move through a comfortable range with controlled technique.','Return slowly and repeat without using momentum.'];
+    const mistakes=Array.isArray(ex.commonMistakes)&&ex.commonMistakes.length?ex.commonMistakes:['Using momentum','Losing control of the movement','Using a load that is too heavy'];
+    const safety=Array.isArray(ex.safetyTips)&&ex.safetyTips.length?ex.safetyTips:['Start with a manageable load','Use a pain-free range of motion','Stop if you feel sharp pain'];
+    openModal({title:ex.name,bodyHtml:photo+'<div class="exercise-detail-meta"><span>'+esc(ex.equipment||'Equipment not specified')+'</span><span>'+esc(ex.muscleGroup||'Uncategorised')+'</span></div>'+(ex.description?'<p>'+esc(ex.description)+'</p>':'')+'<h3>How to perform</h3><ol class="exercise-guide-list">'+steps.map((x)=>'<li>'+esc(x)+'</li>').join('')+'</ol><h3>Common mistakes</h3><ul class="exercise-guide-list">'+mistakes.map((x)=>'<li>'+esc(x)+'</li>').join('')+'</ul><h3>Safety tips</h3><ul class="exercise-guide-list">'+safety.map((x)=>'<li>'+esc(x)+'</li>').join('')+'</ul>'+(ex.custom?'<div class="exercise-detail-actions"><button type="button" class="btn btn-secondary" id="exercise-edit-detail">Edit exercise</button><button type="button" class="btn btn-ghost" id="exercise-delete-detail">Delete</button></div>':''),
+      footerButtons:[{label:ex.favorite?'★ Favourited':'☆ Add to favourites',className:'btn-secondary',onClick:()=>{ex.favorite=!ex.favorite;saveState();closeModal();renderExerciseLibrary();}},{label:'Add to schedule',className:'btn-primary',onClick:()=>{closeModal();openAddExerciseToSchedule(ex);}}],
+      onOpen:(body)=>{const edit=body.querySelector('#exercise-edit-detail');if(edit)edit.addEventListener('click',()=>{closeModal();openCustomExerciseModal(ex);});const del=body.querySelector('#exercise-delete-detail');if(del)del.addEventListener('click',()=>{closeModal();deleteCustomExercise(ex);});}
     });
   }
-
-  function openCustomExerciseModal(existing = null) {
-    openModal({
-      title: existing ? 'Edit Custom Exercise' : 'Add Custom Exercise',
-      bodyHtml: `
-        <form class="form-stack">
-          <div class="form-group">
-            <label for="ce-name">Exercise Name</label>
-            <input type="text" id="ce-name" value="${esc(existing ? existing.name : '')}" placeholder="e.g. Bulgarian Split Squat" required>
-          </div>
-          <div class="form-group">
-            <label for="ce-eq">Equipment Type</label>
-            <select id="ce-eq">
-              ${EQUIPMENT_TYPES.map((t) => `<option value="${t}" ${existing && existing.equipment === t ? 'selected' : ''}>${t}</option>`).join('')}
-            </select>
-          </div>
-        </form>
-      `,
-      footerButtons: [
-        { label: 'Cancel', className: 'btn-secondary', onClick: closeModal },
-        {
-          label: existing ? 'Save Changes' : 'Add Exercise',
-          className: 'btn-primary',
-          onClick: () => {
-            const name = document.getElementById('ce-name').value.trim();
-            const equipment = document.getElementById('ce-eq').value;
-            if (!name) {
-              showToast('Please enter an exercise name.', true);
-              return;
-            }
-            if (existing) {
-              existing.name = name;
-              existing.equipment = equipment;
-            } else {
-              state.exercises.push({ id: generateId('ex'), name, equipment, custom: true });
-            }
-            saveState();
-            closeModal();
-            renderWorkouts();
-            showToast(existing ? 'Exercise updated.' : 'Custom exercise added.');
-          }
-        }
-      ]
+  function openAddExerciseToSchedule(ex) {
+    openModal({title:'Add to weekly schedule',bodyHtml:'<div class="form-stack"><div class="form-group"><label for="library-add-day">Weekday</label><select id="library-add-day">'+WEEKDAYS.map((d)=>'<option value="'+d.id+'">'+d.name+'</option>').join('')+'</select></div><div class="form-row-2"><div class="form-group"><label for="library-add-sets">Sets</label><input id="library-add-sets" type="number" min="1" max="20" value="3"></div><div class="form-group"><label for="library-add-reps">Reps</label><input id="library-add-reps" type="number" min="1" max="100" value="10"></div></div></div>',
+      footerButtons:[{label:'Cancel',className:'btn-secondary',onClick:closeModal},{label:'Add exercise',className:'btn-primary',onClick:()=>{const day=document.getElementById('library-add-day').value,sets=Number(document.getElementById('library-add-sets').value),reps=Number(document.getElementById('library-add-reps').value);if(!Number.isInteger(sets)||sets<1||sets>20||!Number.isInteger(reps)||reps<1||reps>100){showToast('Enter valid sets and reps.',true);return;}const plan=state.schedule[day]||(state.schedule[day]={title:'',exercises:[]});plan.exercises.push({scheduleId:generateId('planex'),exerciseId:ex.id,name:ex.name,equipment:ex.equipment||'',defaultSets:sets,defaultReps:reps});saveState();closeModal();renderWorkoutSchedule();renderHome();showToast(ex.name+' added to '+getWeekdayName(day)+'.');}}]});
+  }
+  function deleteCustomExercise(ex) {
+    if(!ex||!ex.custom)return;
+    confirmAction({title:'Delete custom exercise',message:'Delete "'+esc(ex.name)+'" from the library and remove it from all weekly and date-specific schedules? Existing workout history is preserved.',confirmLabel:'Delete exercise',danger:true,onConfirm:()=>{state.exercises=state.exercises.filter((x)=>x.id!==ex.id);[state.schedule,state.workoutOverrides].forEach((obj)=>Object.values(obj||{}).forEach((p)=>{p.exercises=(p.exercises||[]).filter((x)=>x.exerciseId!==ex.id&&x.name!==ex.name);}));saveState();renderWorkouts();renderHome();showToast('Custom exercise deleted from the library and schedules.');}});
+  }
+  function openCustomExerciseModal(existing=null) {
+    let pendingPhoto=existing?(existing.demoPhoto||''):'';
+    openModal({title:existing?'Edit custom exercise':'Add custom exercise',bodyHtml:'<form class="form-stack" onsubmit="return false"><div class="form-group"><label for="ce-name">Exercise name *</label><input type="text" id="ce-name" value="'+esc(existing?existing.name:'')+'" placeholder="e.g. Bulgarian Split Squat" required></div><div class="form-group"><label for="ce-muscle">Muscle group *</label><select id="ce-muscle" required><option value="">Choose muscle group</option>'+MUSCLE_GROUPS.map((g)=>'<option value="'+esc(g)+'" '+(existing&&existing.muscleGroup===g?'selected':'')+'>'+esc(g)+'</option>').join('')+'</select></div><div class="form-group"><label for="ce-eq">Equipment (optional)</label><select id="ce-eq"><option value="">Not specified</option>'+EQUIPMENT_TYPES.map((t)=>'<option value="'+esc(t)+'" '+(existing&&existing.equipment===t?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select></div><div class="form-group"><label for="ce-instructions">Instructions (optional, one step per line)</label><textarea id="ce-instructions" rows="4">'+esc((existing&&existing.instructions||[]).join('\\n'))+'</textarea></div><div class="form-group"><label for="ce-photo">Demonstration photo (optional)</label><input type="file" id="ce-photo" accept="image/*"><div id="ce-photo-preview" class="custom-photo-preview">'+(pendingPhoto?'<img src="'+pendingPhoto+'" alt="Exercise photo preview">':'No photo selected')+'</div><button type="button" id="ce-photo-remove" class="btn btn-ghost btn-sm">Remove photo</button></div></form>',
+      footerButtons:[{label:'Cancel',className:'btn-secondary',onClick:closeModal},{label:existing?'Save changes':'Add exercise',className:'btn-primary',onClick:()=>{const name=document.getElementById('ce-name').value.trim(),muscleGroup=document.getElementById('ce-muscle').value,equipment=document.getElementById('ce-eq').value;if(!name||!muscleGroup){showToast('Exercise name and muscle group are required.',true);return;}const instructions=document.getElementById('ce-instructions').value.split('\\n').map((x)=>x.trim()).filter(Boolean);if(existing){const oldName=existing.name;Object.assign(existing,{name,muscleGroup,equipment,instructions,demoPhoto:pendingPhoto});[state.schedule,state.workoutOverrides].forEach((obj)=>Object.values(obj||{}).forEach((p)=>(p.exercises||[]).forEach((x)=>{if(x.exerciseId===existing.id||(!x.exerciseId&&x.name===oldName)){x.exerciseId=existing.id;x.name=name;x.equipment=equipment;}})));}else state.exercises.push({id:generateId('ex'),name,muscleGroup,equipment,custom:true,favorite:false,instructions,demoPhoto:pendingPhoto,commonMistakes:[],safetyTips:[]});saveState();closeModal();renderWorkouts();renderHome();showToast(existing?'Exercise updated.':'Custom exercise added.');}}],onOpen:(body)=>{const preview=body.querySelector('#ce-photo-preview');body.querySelector('#ce-photo').addEventListener('change',(ev)=>{const file=ev.target.files&&ev.target.files[0];if(!file)return;if(!file.type.startsWith('image/')){showToast('Choose an image file.',true);return;}const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const scale=Math.min(1,720/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);pendingPhoto=canvas.toDataURL('image/jpeg',0.72);preview.innerHTML='<img src="'+pendingPhoto+'" alt="Exercise photo preview">';};img.src=reader.result;};reader.readAsDataURL(file);});body.querySelector('#ce-photo-remove').addEventListener('click',()=>{pendingPhoto='';preview.textContent='No photo selected';});}
     });
   }
 
@@ -3649,7 +3583,8 @@
     document.getElementById('compare-weekday-select').addEventListener('change', (e) => { uiState.compareWeekday = e.target.value; renderWeekdayComparison(); });
     document.getElementById('btn-add-custom-exercise').addEventListener('click', () => openCustomExerciseModal());
     document.getElementById('library-search').addEventListener('input', renderExerciseLibrary);
-    document.getElementById('library-filter-equipment').addEventListener('change', renderExerciseLibrary);
+    document.getElementById('library-search-clear').addEventListener('click', () => { document.getElementById('library-search').value=''; renderExerciseLibrary(); });
+    document.querySelectorAll('[data-library-view]').forEach((b) => b.addEventListener('click', () => { uiState.libraryView=b.dataset.libraryView; renderExerciseLibrary(); }));
 
     // Nutrition events
     document.getElementById('nutrition-prev-day').addEventListener('click', () => {
