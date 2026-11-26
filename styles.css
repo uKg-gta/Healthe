@@ -1320,3 +1320,33 @@ input:disabled, select:disabled {
 .home-card-arrow { color:var(--text-muted); font-size:.9rem; }
 .home-trends-detail .chart-container { height:230px; }
 @media (min-width:560px) { .home-metrics-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+/* Workouts phase 2: schedule, date overrides and checklist */
+.workout-day-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.workout-day-badges { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.workout-progress-row { display:flex; align-items:center; gap:12px; margin:10px 0 14px; }
+.workout-progress-row .progress-track { flex:1; }
+.workout-progress-row strong { min-width:42px; text-align:right; font-variant-numeric:tabular-nums; }
+.workout-checklist { display:flex; flex-direction:column; gap:8px; }
+.workout-check-row { display:flex; align-items:center; gap:12px; min-height:62px; padding:11px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); cursor:pointer; }
+.workout-check-row input { width:19px; height:19px; flex:0 0 auto; accent-color:var(--accent); }
+.workout-check-copy { display:flex; flex:1; min-width:0; flex-direction:column; gap:3px; }
+.workout-check-copy strong { font-size:.9rem; }
+.workout-check-copy small,.schedule-exercise-list small { color:var(--text-muted); font-size:.76rem; }
+.workout-check-tick { color:var(--positive); opacity:0; font-weight:700; }
+.workout-check-row.is-complete .workout-check-copy strong { color:var(--text-muted); text-decoration:line-through; }
+.workout-check-row.is-complete .workout-check-tick { opacity:1; }
+.workout-day-actions { display:flex; flex-wrap:wrap; gap:7px; margin-top:14px; }
+.workout-rest-panel { display:flex; flex-direction:column; gap:10px; padding:20px 12px; border:1px dashed var(--border-strong); border-radius:var(--radius-sm); background:var(--surface-subtle); }
+.workout-rest-panel span { color:var(--text-muted); font-size:.84rem; }
+.schedule-exercise-list { display:flex; flex-direction:column; gap:7px; }
+.schedule-exercise-list>div { display:flex; flex-direction:column; gap:2px; font-size:.85rem; }
+.schedule-edit-list { display:flex; flex-direction:column; gap:8px; }
+.schedule-edit-row { display:grid; grid-template-columns:minmax(0,1fr) 62px 62px auto; align-items:center; gap:7px; padding:9px; border:1px solid var(--border); border-radius:var(--radius-sm); }
+.schedule-edit-main { min-width:0; display:flex; flex-direction:column; gap:3px; }
+.schedule-edit-main strong { font-size:.84rem; }
+.schedule-edit-main small { color:var(--text-muted); font-size:.72rem; }
+.schedule-edit-row label { display:flex; flex-direction:column; gap:3px; font-size:.68rem; color:var(--text-muted); }
+.schedule-edit-row input { width:100%; min-width:0; padding:6px 4px; min-height:34px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); color:var(--text); }
+.workout-compare-filter { max-width:280px; padding:0 16px; }
+@media(max-width:430px) { .schedule-edit-row { grid-template-columns:minmax(0,1fr) 54px 54px; } .schedule-edit-row button { grid-column:1/-1; justify-self:end; } .workout-day-heading { flex-direction:column; } }
