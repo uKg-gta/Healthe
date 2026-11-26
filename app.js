@@ -916,7 +916,9 @@
         const completedIds = new Set(Array.isArray(current.completed) ? current.completed : []);
         if (checkbox.checked) completedIds.add(checkbox.dataset.homeExercise);
         else completedIds.delete(checkbox.dataset.homeExercise);
-        state.workoutChecklists[dateISO] = { ...current, completed: Array.from(completedIds), touched: true, status: "in_progress", updatedAt: new Date().toISOString() };
+        const nextCompleted = Array.from(completedIds);
+        const allDone = plan.exercises.every((exercise) => completedIds.has(String(exercise.scheduleId)));
+        state.workoutChecklists[dateISO] = { ...current, completed: nextCompleted, touched: true, status: allDone ? "completed" : "in_progress", updatedAt: new Date().toISOString() };
         saveState();
         renderHome();
       });
@@ -1431,7 +1433,8 @@
       const ids = new Set(Array.isArray(current.completed) ? current.completed : []);
       if (input.checked) ids.add(input.dataset.workoutCheck); else ids.delete(input.dataset.workoutCheck);
       const next = Array.from(ids);
-      const allDone = next.length >= total;
+      const nextSet = new Set(next);
+      const allDone = plan.exercises.every((ex) => nextSet.has(String(ex.scheduleId)));
       state.workoutChecklists[dateISO] = { ...current, completed: next, touched: true, status: allDone ? 'completed' : 'in_progress', updatedAt: new Date().toISOString() };
       saveState(); renderWorkoutDay(dateISO); renderWeekdayComparison();
     }));
@@ -1850,6 +1853,7 @@
         { label: isDate ? 'Save date override' : 'Save weekly plan', className: 'btn-primary', onClick: () => {
           const type = document.getElementById('schedule-plan-type').value;
           const fields = document.getElementById('schedule-workout-fields');
+          if (type === 'workout' && list.length === 0) { showToast('Add at least one exercise or choose Rest day.', true); return; }
           fields.querySelectorAll('[data-row-sets]').forEach((input) => { const i = Number(input.dataset.rowSets); list[i].defaultSets = Math.max(1, Math.min(20, Number(input.value) || 3)); });
           fields.querySelectorAll('[data-row-reps]').forEach((input) => { const i = Number(input.dataset.rowReps); list[i].defaultReps = Math.max(1, Math.min(100, Number(input.value) || 10)); });
           const plan = type === 'rest' ? { type: 'rest', title: '', exercises: [] } : { type: 'custom', title: document.getElementById('sched-title-input').value.trim(), exercises: list };
