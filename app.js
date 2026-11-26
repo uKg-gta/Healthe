@@ -198,6 +198,7 @@
       savedFoods: [],    // [ { id, name, baseQuantity, unit, calories, protein, carbs, fat, fibre, sugar, sodium, micronutrients: [] } ]
       weights: [],       // [ { id, date, weight, unit, heightCm } ]
       healthLogs: {},    // { 'YYYY-MM-DD': { water: number|null, sleep: number|null, steps: number|null } }
+      workoutChecklists: {}, // { 'YYYY-MM-DD': { completed: string[], touched: boolean } }
       photos: []         // [ { id, date, note, dataUrl, sizeBytes } ]
     };
   }
@@ -231,6 +232,9 @@
       weights: Array.isArray(raw.weights) ? raw.weights : [],
       healthLogs: raw.healthLogs && typeof raw.healthLogs === 'object' && !Array.isArray(raw.healthLogs)
         ? raw.healthLogs
+        : {},
+      workoutChecklists: raw.workoutChecklists && typeof raw.workoutChecklists === 'object' && !Array.isArray(raw.workoutChecklists)
+        ? raw.workoutChecklists
         : {},
       photos: Array.isArray(raw.photos) ? raw.photos : []
     };
@@ -267,7 +271,8 @@
     activeSection: 'home',
     homeDate: getTodayISO(),
     nutritionDate: getTodayISO(),
-    homeChartMetric: 'calories',
+    homeMode: '',
+    homeTrendDetailOpen: false,
     progressRange: '30',
     progressGranularity: 'daily',
     selectedStrengthExercise: '',
@@ -772,153 +777,248 @@
 
   // -------------------- SECTION 1: HOME DASHBOARD --------------------
 
-  function renderHome() {
-    const dateISO = uiState.homeDate;
-    document.getElementById('home-date-picker').value = dateISO;
-    document.getElementById('home-date-label').textContent = formatDisplayDate(dateISO);
+  function isGymModeNow() {
+    const hour = new Date().getHours();
+    return hour >= 6 && hour < 12;
+  }
 
-    // 1. Today's workout status
-    const dayWorkouts = state.workouts.filter((w) => w.date === dateISO);
-    const weekdayId = String(getWeekdayFromISO(dateISO));
-    const scheduled = state.schedule[weekdayId];
-    const workoutEl = document.getElementById('home-workout-status');
+  function renderHomeClock() {
+    const now = new Date();
+    const timeEl = document.getElementById("home-current-time");
+    const dateEl = document.getElementById("home-current-date");
+    if (timeEl) timeEl.textContent = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    if (dateEl) dateEl.textContent = now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  }
 
-    if (dayWorkouts.length > 0) {
-      const totalSets = dayWorkouts.reduce(
-        (acc, w) => acc + w.exercises.reduce((s, ex) => s + (Number(ex.sets) || 0), 0),
-        0
-      );
-      const totalEx = dayWorkouts.reduce((acc, w) => acc + w.exercises.length, 0);
-      workoutEl.innerHTML = `
-        <div class="metric-big-row">
-          <div>
-            <span class="badge badge-positive">Completed</span>
-            <div class="list-item-title" style="margin-top:6px;">${esc(dayWorkouts.map((w) => w.title || 'Workout Session').join(', '))}</div>
-          </div>
-          <div class="metric-sub num">${totalEx} exercises &middot; ${totalSets} sets</div>
-        </div>
-        <div class="item-list">
-          ${dayWorkouts[0].exercises
-            .slice(0, 3)
-            .map((ex) => `<div class="metric-sub">${esc(ex.name)} (${esc(ex.equipment)}): ${ex.sets} &times; ${ex.reps}${ex.weight !== null && ex.weight !== '' ? ` @ ${ex.weight} ${ex.unit}` : ''}</div>`)
-            .join('')}
-          ${dayWorkouts[0].exercises.length > 3 ? `<div class="metric-sub">+${dayWorkouts[0].exercises.length - 3} more exercises</div>` : ''}
-        </div>
-      `;
-    } else {
-      const hasPlan = scheduled && (scheduled.title || scheduled.exercises.length > 0);
-      workoutEl.innerHTML = `
-        <div class="metric-big-row">
-          <div>
-            <span class="badge">No workout logged</span>
-            ${hasPlan
-              ? `<div class="metric-sub" style="margin-top:6px;">Scheduled for ${getWeekdayName(weekdayId)}: <strong>${esc(scheduled.title || `${scheduled.exercises.length} exercises`)}</strong></div>`
-              : `<div class="metric-sub" style="margin-top:6px;">No session scheduled for ${getWeekdayName(weekdayId)}.</div>`
-            }
-          </div>
-          <button type="button" class="btn btn-primary btn-sm" id="home-log-workout-btn">${hasPlan ? 'Log Scheduled' : 'Log Workout'}</button>
-        </div>
-      `;
-      const btn = document.getElementById('home-log-workout-btn');
-      if (btn) {
-        btn.addEventListener('click', () => {
-          startWorkoutForDate(dateISO, hasPlan);
-        });
-      }
-    }
-
-    // 2. Body weight & BMI
-    const latestWeight = getLatestWeightEntry();
-    const prefUnit = state.profile.weightUnit;
-    const bodyEl = document.getElementById('home-body-metrics');
-    if (latestWeight) {
-      const displayWeight = roundNum(convertWeight(latestWeight.weight, latestWeight.unit, prefUnit), 1);
-      const weightKg = toKg(latestWeight.weight, latestWeight.unit);
-      const heightToUse = latestWeight.heightCm || state.profile.heightCm;
-      const bmi = calculateBMI(weightKg, heightToUse);
-      bodyEl.innerHTML = `
-        <div class="bmi-grid">
-          <div class="stat-box">
-            <div class="stat-label">Latest Weight</div>
-            <div class="metric-value">${displayWeight}<span class="metric-unit">${prefUnit}</span></div>
-            <div class="metric-sub">${formatShortDate(latestWeight.date)}</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">BMI</div>
-            <div class="metric-value">${bmi !== null ? bmi : '—'}</div>
-            <div class="metric-sub">${bmi !== null ? `Height ${heightToUse} cm` : 'Add height in Profile'}</div>
-          </div>
-        </div>
-      `;
-    } else {
-      bodyEl.innerHTML = `
-        <div class="bmi-grid">
-          <div class="stat-box">
-            <div class="stat-label">Latest Weight</div>
-            <div class="metric-value">—</div>
-            <div class="metric-sub">No weight logged yet</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">BMI</div>
-            <div class="metric-value">—</div>
-            <div class="metric-sub">${state.profile.heightCm ? `Height ${state.profile.heightCm} cm` : 'Set height in Profile'}</div>
-          </div>
-        </div>
-      `;
-    }
-
-    // 3. Nutrition summary
-    const totals = getNutritionTotalsForDate(dateISO);
-    const t = state.targets;
-    const nutEl = document.getElementById('home-nutrition-summary');
-    nutEl.innerHTML = `
-      ${renderProgressRow('Calories', totals.calories, t.calories, 'kcal', '')}
-      <div class="macro-grid">
-        ${renderProgressRow('Protein', totals.protein, t.protein, 'g', '')}
-        ${renderProgressRow('Carbs', totals.carbs, t.carbs, 'g', 'series-2')}
-        ${renderProgressRow('Fat', totals.fat, t.fat, 'g', 'series-3')}
-      </div>
-      ${!totals.hasEntries ? '<div class="metric-sub">No food entries logged for this day yet.</div>' : ''}
-    `;
-
-    // 4. Water, Sleep, Steps
-    const hLog = getHealthLogForDate(dateISO);
-    const waterUnit = state.profile.waterUnit;
-    const waterVal = hLog.water;
-    const waterPct = t.water && waterVal !== null ? Math.min(100, roundNum((waterVal / t.water) * 100, 0)) : 0;
-
-    document.getElementById('home-water-card').innerHTML = `
-      <div class="metric-value">${waterVal !== null ? formatWater(waterVal, waterUnit) : '—'}</div>
-      <div class="metric-sub">${t.water ? `Target: ${formatWater(t.water, waterUnit)}${waterVal !== null ? ` (${Math.round((waterVal / t.water) * 100)}%)` : ''}` : 'No target set'}</div>
-      <div class="progress-track"><div class="progress-fill series-2" style="width:${waterPct}%"></div></div>
-      <div class="water-quick-row">
-        <button type="button" class="btn btn-secondary btn-sm" data-water-add="250">+250 ml</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-water-add="500">+500 ml</button>
-      </div>
-    `;
-    document.querySelectorAll('#home-water-card [data-water-add]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const delta = Number(btn.dataset.waterAdd);
-        const log = ensureHealthLog(dateISO);
-        log.water = Math.max(0, (Number(log.water) || 0) + delta);
-        saveState();
-        renderHome();
-        showToast(`Added ${delta} ml water`);
+  function ensureScheduleExerciseIds() {
+    let changed = false;
+    Object.values(state.schedule || {}).forEach((plan) => {
+      if (!plan || !Array.isArray(plan.exercises)) return;
+      plan.exercises.forEach((exercise) => {
+        if (!exercise.scheduleId) {
+          exercise.scheduleId = generateId("planex");
+          changed = true;
+        }
       });
     });
+    if (changed) saveState();
+  }
 
-    document.getElementById('home-sleep-card').innerHTML = `
-      <div class="metric-value">${hLog.sleep !== null ? `${roundNum(hLog.sleep, 1)}<span class="metric-unit">hrs</span>` : '—'}</div>
-      <div class="metric-sub">${t.sleep ? `Target: ${t.sleep} hrs` : (hLog.sleep !== null ? 'Logged for this day' : 'No sleep logged')}</div>
-    `;
+  function getHomeTargets() {
+    return {
+      water: Number(state.targets.water) > 0 ? Number(state.targets.water) : 2500,
+      sleep: Number(state.targets.sleep) > 0 ? Number(state.targets.sleep) : 7,
+      steps: Number(state.targets.steps) > 0 ? Number(state.targets.steps) : 7000
+    };
+  }
 
-    document.getElementById('home-steps-card').innerHTML = `
-      <div class="metric-value">${hLog.steps !== null ? Number(hLog.steps).toLocaleString() : '—'}</div>
-      <div class="metric-sub">${t.steps ? `Target: ${Number(t.steps).toLocaleString()} steps` : (hLog.steps !== null ? 'Logged for this day' : 'No steps logged')}</div>
-    `;
+  function getWorkoutCompletionPercent(dateISO) {
+    const weekday = String(getWeekdayFromISO(dateISO));
+    const plan = state.schedule[weekday];
+    if (!plan || !Array.isArray(plan.exercises) || plan.exercises.length === 0) return null;
+    const daily = state.workoutChecklists[dateISO];
+    if (!daily || daily.touched !== true || !Array.isArray(daily.completed)) return null;
+    const completed = new Set(daily.completed);
+    const count = plan.exercises.filter((exercise) => completed.has(exercise.scheduleId)).length;
+    return Math.round((count / plan.exercises.length) * 100);
+  }
 
-    // 5. 7-day mini-chart
-    renderHomeMiniChart();
+  function getHomeTrendSeries(days) {
+    const dates = [];
+    for (let i = days - 1; i >= 0; i--) dates.push(shiftISODate(uiState.homeDate, -i));
+    const targets = getHomeTargets();
+    return {
+      dates: dates,
+      labels: dates.map((dateISO) => formatShortDate(dateISO)),
+      workoutValues: dates.map((dateISO) => getWorkoutCompletionPercent(dateISO)),
+      waterValues: dates.map((dateISO) => {
+        const log = state.healthLogs[dateISO];
+        return log && log.water !== null && log.water !== undefined
+          ? Math.min(100, Math.round((Number(log.water) / targets.water) * 100))
+          : null;
+      }),
+      sleepValues: dates.map((dateISO) => {
+        const log = state.healthLogs[dateISO];
+        return log && log.sleep !== null && log.sleep !== undefined
+          ? Math.min(100, Math.round((Number(log.sleep) / targets.sleep) * 100))
+          : null;
+      })
+    };
+  }
+
+  function renderHome() {
+    ensureScheduleExerciseIds();
+    const dateISO = uiState.homeDate;
+    const gymMode = isGymModeNow();
+    uiState.homeMode = gymMode ? "gym" : "normal";
+
+    document.getElementById("home-date-picker").value = dateISO;
+    document.getElementById("home-date-label").textContent = "Selected date · " + formatDisplayDate(dateISO);
+    renderHomeClock();
+
+    document.getElementById("home-gym-mode").classList.toggle("hidden", !gymMode);
+    document.getElementById("home-normal-mode").classList.toggle("hidden", gymMode);
+    document.getElementById("quick-workout-action").classList.toggle("hidden", !gymMode);
+    const detailOpen = uiState.homeTrendDetailOpen && !gymMode;
+    document.getElementById("home-dashboard-view").classList.toggle("hidden", detailOpen);
+    document.getElementById("home-trends-detail").classList.toggle("hidden", !detailOpen);
+
+    if (gymMode) renderHomeGymMode(dateISO);
+    else renderHomeNormalMode(dateISO);
+  }
+
+  function renderHomeGymMode(dateISO) {
+    const weekday = String(getWeekdayFromISO(dateISO));
+    const plan = state.schedule[weekday] || { title: "", exercises: [] };
+    const note = document.getElementById("home-gym-date-note");
+    const container = document.getElementById("home-gym-workout");
+    note.textContent = formatDisplayDate(dateISO) + " · " + (plan.title || getWeekdayName(weekday));
+
+    if (!plan.exercises || plan.exercises.length === 0) {
+      container.innerHTML =
+        '<div class="home-rest-state">' +
+          '<div class="home-rest-icon" aria-hidden="true">✓</div>' +
+          '<strong>No workout scheduled</strong>' +
+          '<span>' + esc(getWeekdayName(weekday)) + ' is set as a rest day or has no exercises yet.</span>' +
+          '<button type="button" class="btn btn-secondary btn-sm" id="home-open-schedule">Open Schedule</button>' +
+        '</div>';
+      document.getElementById("home-open-schedule").addEventListener("click", () => navigateTo("workouts", "workouts-schedule"));
+      return;
+    }
+
+    const daily = state.workoutChecklists[dateISO] || { completed: [], touched: false };
+    const completed = new Set(Array.isArray(daily.completed) ? daily.completed : []);
+    const completedCount = plan.exercises.filter((exercise) => completed.has(exercise.scheduleId)).length;
+    const total = plan.exercises.length;
+    const percent = Math.round((completedCount / total) * 100);
+    const rows = plan.exercises.map((exercise) => {
+      const id = String(exercise.scheduleId);
+      const isDone = completed.has(id);
+      return '<label class="home-checklist-row ' + (isDone ? "is-complete" : "") + '">' +
+        '<input type="checkbox" data-home-exercise="' + esc(id) + '" ' + (isDone ? "checked" : "") + '>' +
+        '<span class="home-checklist-copy"><strong>' + esc(exercise.name || "Exercise") + '</strong>' +
+        '<span>' + (Number(exercise.defaultSets) || 3) + ' sets × ' + (Number(exercise.defaultReps) || 10) + ' reps</span></span>' +
+        '<span class="home-checkmark" aria-hidden="true">✓</span></label>';
+    }).join("");
+
+    container.innerHTML =
+      '<div class="home-workout-progress"><div class="flex-between">' +
+        '<span class="metric-sub">' + completedCount + ' of ' + total + ' exercises completed</span>' +
+        '<strong class="home-workout-percent">' + percent + '%</strong></div>' +
+        '<div class="progress-track"><div class="progress-fill" style="width:' + percent + '%"></div></div></div>' +
+      '<div class="home-checklist">' + rows + '</div>' +
+      '<div class="home-workout-footer"><span class="metric-sub">Tick each exercise as you complete it.</span>' +
+        '<button type="button" class="link-btn" id="home-open-schedule">Edit schedule</button></div>';
+
+    container.querySelectorAll("[data-home-exercise]").forEach((checkbox) => {
+      checkbox.addEventListener("change", () => {
+        const current = state.workoutChecklists[dateISO] || { completed: [], touched: false };
+        const completedIds = new Set(Array.isArray(current.completed) ? current.completed : []);
+        if (checkbox.checked) completedIds.add(checkbox.dataset.homeExercise);
+        else completedIds.delete(checkbox.dataset.homeExercise);
+        state.workoutChecklists[dateISO] = {
+          completed: Array.from(completedIds),
+          touched: true,
+          updatedAt: new Date().toISOString()
+        };
+        saveState();
+        renderHome();
+      });
+    });
+    document.getElementById("home-open-schedule").addEventListener("click", () => navigateTo("workouts", "workouts-schedule"));
+  }
+
+  function renderHomeNormalMode(dateISO) {
+    const log = getHealthLogForDate(dateISO);
+    const targets = getHomeTargets();
+    const water = log.water;
+    const sleep = log.sleep;
+    const steps = log.steps;
+    const waterPercent = water === null ? null : Math.min(100, Math.round((Number(water) / targets.water) * 100));
+    const sleepPercent = sleep === null ? null : Math.min(100, Math.round((Number(sleep) / targets.sleep) * 100));
+    const stepsPercent = steps === null ? null : Math.min(100, Math.round((Number(steps) / targets.steps) * 100));
+    const latestWeight = getLatestWeightEntry();
+    const prefUnit = state.profile.weightUnit;
+
+    document.getElementById("home-water-card").innerHTML =
+      '<div class="metric-value">' + (water !== null ? formatWater(water, state.profile.waterUnit) : "—") + '</div>' +
+      '<div class="metric-sub">Target: ' + formatWater(targets.water, state.profile.waterUnit) +
+      (waterPercent !== null ? " · " + waterPercent + "%" : " · Not recorded") + '</div>' +
+      '<div class="progress-track"><div class="progress-fill series-2" style="width:' + (waterPercent === null ? 0 : waterPercent) + '%"></div></div>';
+
+    document.getElementById("home-sleep-card").innerHTML =
+      '<div class="metric-value">' + (sleep !== null ? roundNum(sleep, 1) + '<span class="metric-unit">hrs</span>' : "—") + '</div>' +
+      '<div class="metric-sub">Target: ' + targets.sleep + ' hrs' +
+      (sleepPercent !== null ? " · " + sleepPercent + "%" : " · Not recorded") + '</div>' +
+      '<div class="progress-track"><div class="progress-fill" style="width:' + (sleepPercent === null ? 0 : sleepPercent) + '%"></div></div>';
+
+    document.getElementById("home-steps-card").innerHTML =
+      '<div class="metric-value">' + (steps !== null ? Number(steps).toLocaleString() : "—") + '</div>' +
+      '<div class="metric-sub">Target: ' + Number(targets.steps).toLocaleString() +
+      (stepsPercent !== null ? " · " + stepsPercent + "%" : " · Not recorded") + '</div>' +
+      '<div class="progress-track"><div class="progress-fill series-3" style="width:' + (stepsPercent === null ? 0 : stepsPercent) + '%"></div></div>';
+
+    if (latestWeight) {
+      const displayWeight = roundNum(convertWeight(latestWeight.weight, latestWeight.unit, prefUnit), 1);
+      document.getElementById("home-body-weight-card").innerHTML =
+        '<div class="metric-value">' + displayWeight + '<span class="metric-unit">' + prefUnit + '</span></div>' +
+        '<div class="metric-sub">Latest record · ' + formatShortDate(latestWeight.date) + '</div>' +
+        '<div class="metric-sub">Trend only · no target</div>';
+    } else {
+      document.getElementById("home-body-weight-card").innerHTML =
+        '<div class="metric-value">—</div><div class="metric-sub">No weight recorded yet</div>' +
+        '<div class="metric-sub">Trend only · no target</div>';
+    }
+
+    renderHomeCombinedChart();
+    if (uiState.homeTrendDetailOpen) renderHomeDetailedCharts();
+  }
+
+  function renderHomeCombinedChart() {
+    const data = getHomeTrendSeries(7);
+    renderSVGChart(document.getElementById("home-combined-chart"), {
+      labels: data.labels,
+      series: [
+        { name: "Workout completion", color: "var(--accent)", values: data.workoutValues, unit: "%" },
+        { name: "Water", color: "var(--series-2)", values: data.waterValues, unit: "%" },
+        { name: "Sleep", color: "var(--series-4)", values: data.sleepValues, unit: "%" }
+      ],
+      type: "line",
+      targetValue: 100,
+      yMinZero: true,
+      emptyMessage: "Your trends will appear here as you record workouts, water and sleep."
+    });
+  }
+
+  function renderHomeDetailedCharts() {
+    const data = getHomeTrendSeries(30);
+    const common = { labels: data.labels, type: "line", targetValue: 100, yMinZero: true };
+    renderSVGChart(document.getElementById("home-detail-workout-chart"), {
+      ...common,
+      series: [{ name: "Workout completion", color: "var(--accent)", values: data.workoutValues, unit: "%" }],
+      emptyMessage: "No workout completion records in this period."
+    });
+    renderSVGChart(document.getElementById("home-detail-water-chart"), {
+      ...common,
+      series: [{ name: "Water", color: "var(--series-2)", values: data.waterValues, unit: "%" }],
+      emptyMessage: "No water records in this period."
+    });
+    renderSVGChart(document.getElementById("home-detail-sleep-chart"), {
+      ...common,
+      series: [{ name: "Sleep", color: "var(--series-4)", values: data.sleepValues, unit: "%" }],
+      emptyMessage: "No sleep records in this period."
+    });
+  }
+
+  function updateHomeClock() {
+    const nextMode = isGymModeNow() ? "gym" : "normal";
+    const quickWorkout = document.getElementById("quick-workout-action");
+    if (quickWorkout) quickWorkout.classList.toggle("hidden", nextMode !== "gym");
+    if (uiState.homeMode && uiState.homeMode !== nextMode && uiState.activeSection === "home") {
+      renderHome();
+      return;
+    }
+    renderHomeClock();
   }
 
   function renderProgressRow(label, current, target, unit, colorClass) {
@@ -3373,7 +3473,7 @@
       if (e.key === 'Escape') closeModal();
     });
 
-    // Home date controls & quick actions
+    // Home date controls, trend detail and global quick actions
     document.getElementById('home-prev-day').addEventListener('click', () => {
       uiState.homeDate = shiftISODate(uiState.homeDate, -1);
       renderHome();
@@ -3392,21 +3492,54 @@
         renderHome();
       }
     });
-    document.getElementById('home-chart-metric').addEventListener('change', (e) => {
-      uiState.homeChartMetric = e.target.value;
-      renderHomeMiniChart();
+
+    document.getElementById('home-expand-trends').addEventListener('click', () => {
+      uiState.homeTrendDetailOpen = true;
+      document.getElementById('home-dashboard-view').classList.add('hidden');
+      document.getElementById('home-trends-detail').classList.remove('hidden');
+      renderHomeDetailedCharts();
+    });
+    document.getElementById('home-trends-back').addEventListener('click', () => {
+      uiState.homeTrendDetailOpen = false;
+      document.getElementById('home-trends-detail').classList.add('hidden');
+      document.getElementById('home-dashboard-view').classList.remove('hidden');
     });
 
-    document.querySelectorAll('[data-quick]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const q = btn.dataset.quick;
-        if (q === 'workout') startWorkoutForDate(uiState.homeDate, false);
-        else if (q === 'food') openFoodEntryModal({ mode: 'daily', dateISO: uiState.homeDate });
-        else if (q === 'water') openQuickHealthModal('water', uiState.homeDate);
-        else if (q === 'sleep') openQuickHealthModal('sleep', uiState.homeDate);
-        else if (q === 'steps') openQuickHealthModal('steps', uiState.homeDate);
-        else if (q === 'weight') openQuickWeightModal();
+    document.querySelectorAll('[data-home-goto]').forEach((card) => {
+      const open = () => navigateTo(card.dataset.homeGoto);
+      card.addEventListener('click', open);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          open();
+        }
       });
+    });
+
+    const quickToggle = document.getElementById('quick-actions-toggle');
+    const quickMenu = document.getElementById('quick-actions-menu');
+    quickToggle.addEventListener('click', () => {
+      const willOpen = quickMenu.classList.contains('hidden');
+      quickMenu.classList.toggle('hidden', !willOpen);
+      quickToggle.setAttribute('aria-expanded', String(willOpen));
+    });
+    document.querySelectorAll('[data-home-quick]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.homeQuick;
+        quickMenu.classList.add('hidden');
+        quickToggle.setAttribute('aria-expanded', 'false');
+        if (action === 'workout') navigateTo('workouts', 'workouts-schedule');
+        else if (action === 'water') openQuickHealthModal('water', uiState.homeDate);
+        else if (action === 'sleep') openQuickHealthModal('sleep', uiState.homeDate);
+        else if (action === 'steps') openQuickHealthModal('steps', uiState.homeDate);
+        else if (action === 'weight') openQuickWeightModal();
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.quick-menu-wrap')) {
+        quickMenu.classList.add('hidden');
+        quickToggle.setAttribute('aria-expanded', 'false');
+      }
     });
 
     // Workouts events
@@ -3563,6 +3696,7 @@
     document.getElementById('compare-weekday-select').value = uiState.compareWeekday;
     bindEvents();
     renderActiveSection();
+    window.setInterval(updateHomeClock, 30000);
   }
 
   if (document.readyState === 'loading') {
