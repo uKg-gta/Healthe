@@ -22,32 +22,41 @@
     { id: 0, name: 'Sunday', short: 'Sun' }
   ];
 
-  const EQUIPMENT_TYPES = ['Barbell', 'Dumbbell', 'Machine stack', 'Bodyweight'];
 
-  const BUILTIN_EXERCISES = [
-    { id: 'ex_bench_bb', name: 'Bench Press', equipment: 'Barbell', custom: false },
-    { id: 'ex_incline_db', name: 'Incline Dumbbell Press', equipment: 'Dumbbell', custom: false },
-    { id: 'ex_ohp_bb', name: 'Overhead Press', equipment: 'Barbell', custom: false },
-    { id: 'ex_shoulder_db', name: 'Dumbbell Shoulder Press', equipment: 'Dumbbell', custom: false },
-    { id: 'ex_lat_raise_db', name: 'Lateral Raise', equipment: 'Dumbbell', custom: false },
-    { id: 'ex_squat_bb', name: 'Back Squat', equipment: 'Barbell', custom: false },
-    { id: 'ex_rdl_bb', name: 'Romanian Deadlift', equipment: 'Barbell', custom: false },
-    { id: 'ex_deadlift_bb', name: 'Deadlift', equipment: 'Barbell', custom: false },
-    { id: 'ex_leg_press_mc', name: 'Leg Press', equipment: 'Machine stack', custom: false },
-    { id: 'ex_leg_curl_mc', name: 'Seated Leg Curl', equipment: 'Machine stack', custom: false },
-    { id: 'ex_leg_ext_mc', name: 'Leg Extension', equipment: 'Machine stack', custom: false },
-    { id: 'ex_row_bb', name: 'Barbell Row', equipment: 'Barbell', custom: false },
-    { id: 'ex_row_db', name: 'One-Arm Dumbbell Row', equipment: 'Dumbbell', custom: false },
-    { id: 'ex_lat_pull_mc', name: 'Lat Pulldown', equipment: 'Machine stack', custom: false },
-    { id: 'ex_cable_row_mc', name: 'Seated Cable Row', equipment: 'Machine stack', custom: false },
-    { id: 'ex_curl_db', name: 'Dumbbell Bicep Curl', equipment: 'Dumbbell', custom: false },
-    { id: 'ex_tricep_mc', name: 'Tricep Pushdown', equipment: 'Machine stack', custom: false },
-    { id: 'ex_pullup_bw', name: 'Pull-Up', equipment: 'Bodyweight', custom: false },
-    { id: 'ex_pushup_bw', name: 'Push-Up', equipment: 'Bodyweight', custom: false },
-    { id: 'ex_dip_bw', name: 'Dip', equipment: 'Bodyweight', custom: false },
-    { id: 'ex_plank_bw', name: 'Plank', equipment: 'Bodyweight', custom: false },
-    { id: 'ex_lunge_db', name: 'Dumbbell Lunge', equipment: 'Dumbbell', custom: false }
+  const MUSCLE_GROUPS = ['Chest','Back','Shoulders','Biceps','Triceps','Forearms','Abs','Obliques','Quadriceps','Hamstrings','Glutes','Calves'];
+  const EQUIPMENT_TYPES = ['Barbell','Dumbbell','Cable','Machine','Bodyweight','Resistance band','Kettlebell','Other'];
+  const EXERCISE_CATALOGUE = [
+    ['bench_press','Bench Press','Chest','Barbell'],['incline_bench_press','Incline Bench Press','Chest','Barbell'],['dumbbell_bench_press','Dumbbell Bench Press','Chest','Dumbbell'],['incline_dumbbell_press','Incline Dumbbell Press','Chest','Dumbbell'],['cable_fly','Cable Fly','Chest','Cable'],['pec_deck','Pec Deck Fly','Chest','Machine'],
+    ['barbell_row','Barbell Row','Back','Barbell'],['pull_up','Pull-Up','Back','Bodyweight'],['lat_pulldown','Lat Pulldown','Back','Machine'],['seated_cable_row','Seated Cable Row','Back','Cable'],['one_arm_dumbbell_row','One-Arm Dumbbell Row','Back','Dumbbell'],['deadlift','Deadlift','Back','Barbell'],
+    ['overhead_press','Overhead Press','Shoulders','Barbell'],['dumbbell_shoulder_press','Dumbbell Shoulder Press','Shoulders','Dumbbell'],['lateral_raise','Lateral Raise','Shoulders','Dumbbell'],['cable_lateral_raise','Cable Lateral Raise','Shoulders','Cable'],['reverse_pec_deck','Reverse Pec Deck','Shoulders','Machine'],
+    ['barbell_curl','Barbell Curl','Biceps','Barbell'],['dumbbell_curl','Dumbbell Bicep Curl','Biceps','Dumbbell'],['hammer_curl','Hammer Curl','Biceps','Dumbbell'],['preacher_curl','Preacher Curl','Biceps','Machine'],
+    ['triceps_pushdown','Triceps Pushdown','Triceps','Cable'],['overhead_triceps_extension','Overhead Triceps Extension','Triceps','Dumbbell'],['skull_crusher','Skull Crusher','Triceps','Barbell'],['bench_dip','Bench Dip','Triceps','Bodyweight'],
+    ['wrist_curl','Wrist Curl','Forearms','Dumbbell'],['reverse_wrist_curl','Reverse Wrist Curl','Forearms','Barbell'],['farmer_carry','Farmer Carry','Forearms','Dumbbell'],
+    ['plank','Plank','Abs','Bodyweight'],['crunch','Crunch','Abs','Bodyweight'],['hanging_leg_raise','Hanging Leg Raise','Abs','Bodyweight'],['cable_crunch','Cable Crunch','Abs','Cable'],
+    ['russian_twist','Russian Twist','Obliques','Bodyweight'],['side_plank','Side Plank','Obliques','Bodyweight'],['woodchop','Cable Woodchop','Obliques','Cable'],
+    ['back_squat','Back Squat','Quadriceps','Barbell'],['front_squat','Front Squat','Quadriceps','Barbell'],['leg_press','Leg Press','Quadriceps','Machine'],['leg_extension','Leg Extension','Quadriceps','Machine'],['goblet_squat','Goblet Squat','Quadriceps','Dumbbell'],
+    ['romanian_deadlift','Romanian Deadlift','Hamstrings','Barbell'],['seated_leg_curl','Seated Leg Curl','Hamstrings','Machine'],['lying_leg_curl','Lying Leg Curl','Hamstrings','Machine'],['good_morning','Good Morning','Hamstrings','Barbell'],
+    ['hip_thrust','Hip Thrust','Glutes','Barbell'],['glute_bridge','Glute Bridge','Glutes','Bodyweight'],['cable_kickback','Cable Glute Kickback','Glutes','Cable'],['bulgarian_split_squat','Bulgarian Split Squat','Glutes','Dumbbell'],
+    ['standing_calf_raise','Standing Calf Raise','Calves','Machine'],['seated_calf_raise','Seated Calf Raise','Calves','Machine'],['dumbbell_calf_raise','Dumbbell Calf Raise','Calves','Dumbbell']
   ];
+  function makeBuiltinExercise([id,name,muscleGroup,equipment]) {
+    const steps = {
+      Chest:['Set your shoulder blades against the bench and plant your feet.','Lower the weight under control toward the chest.','Press smoothly without bouncing or forcing the shoulders forward.'],
+      Back:['Brace your trunk and set your shoulders before moving.','Pull with controlled motion while keeping your spine neutral.','Return slowly and avoid jerking or swinging the weight.'],
+      Shoulders:['Stand or sit tall with your ribs stacked over your hips.','Move the weight through a comfortable, controlled range.','Keep the neck relaxed and avoid using momentum.'],
+      Biceps:['Keep your upper arms steady and wrists neutral.','Curl the weight without swinging your torso.','Lower slowly until the elbow is comfortably extended.'],
+      Triceps:['Set your shoulders and keep elbows controlled.','Extend through the elbow without snapping the joint.','Return slowly while keeping the upper arm stable.'],
+      Forearms:['Use a secure grip and keep the wrists aligned.','Move through a comfortable wrist or grip range.','Avoid bouncing and use a load you can control.'],
+      Abs:['Brace your abdomen and keep your lower back controlled.','Move deliberately rather than pulling with the neck.','Breathe steadily and stop if you feel back pain.'],
+      Obliques:['Brace your trunk and keep hips stable.','Rotate or resist rotation with controlled movement.','Avoid twisting sharply or using momentum.'],
+      Quadriceps:['Set your feet firmly and brace before the repetition.','Bend your knees while keeping them tracking with your toes.','Drive through the feet and avoid collapsing inward.'],
+      Hamstrings:['Set your hips and maintain a neutral spine.','Move from the hips or bend the knees as the exercise requires.','Control the return and avoid bouncing into end range.'],
+      Glutes:['Brace your trunk and position feet securely.','Drive through the hips while keeping the pelvis controlled.','Finish without over-arching your lower back.'],
+      Calves:['Use a stable stance and keep knees in the intended position.','Rise through the balls of your feet with a comfortable range.','Pause briefly, then lower slowly without bouncing.']
+    };
+    return {id:'ex_'+id,name,muscleGroup,equipment,custom:false,favorite:false,instructions:steps[muscleGroup],commonMistakes:['Using momentum instead of controlled movement','Choosing a load that compromises technique','Shortening the range of motion'],safetyTips:['Start with a manageable load and build gradually','Use a pain-free range of motion','Stop if you feel sharp pain or unusual symptoms']};
+  }
+  const BUILTIN_EXERCISES = EXERCISE_CATALOGUE.map(makeBuiltinExercise);
 
   // -------------------- Date & Math Helpers --------------------
 
@@ -221,9 +230,13 @@
           ? raw.targets.micronutrients
           : []
       },
-      exercises: Array.isArray(raw.exercises) && raw.exercises.length > 0
-        ? raw.exercises
-        : base.exercises,
+      exercises: (() => {
+        const saved = Array.isArray(raw.exercises) ? raw.exercises : [];
+        const byId = new Map(saved.map((e) => [e.id, e]));
+        const mergedExercises = base.exercises.map((e) => ({ ...e, ...(byId.get(e.id) || {}) }));
+        saved.filter((e) => e && e.custom && !mergedExercises.some((x) => x.id === e.id)).forEach((e) => mergedExercises.push(e));
+        return mergedExercises;
+      })(),
       schedule: { ...base.schedule },
       workouts: Array.isArray(raw.workouts) ? raw.workouts : [],
       nutritionLogs: raw.nutritionLogs && typeof raw.nutritionLogs === 'object' && !Array.isArray(raw.nutritionLogs)
